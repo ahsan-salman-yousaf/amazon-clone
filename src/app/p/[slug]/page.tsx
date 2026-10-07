@@ -62,7 +62,7 @@ export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
           <div className="mt-6 lg:mt-0">
             <nav aria-label="Breadcrumb" className="mb-3">
               <ol className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
-                {group && (
+                {group && group.name !== categoryName && (
                   <li className="flex items-center gap-1">
                     {group.name}
                     <ChevronRightIcon aria-hidden className="size-3" />

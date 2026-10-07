@@ -200,11 +200,14 @@ export function ReviewsSection({
           <span className="text-4xl font-semibold tabular-nums">{rating.toFixed(1)}</span>
           <div>
             <Stars rating={rating} className="text-base" />
-            <p className="text-xs text-muted-foreground">{ratingCount.toLocaleString("en-US")} ratings</p>
+            <p className="text-xs text-muted-foreground">{ratingCount.toLocaleString("en-US")} star ratings</p>
           </div>
         </div>
+        <p className="mt-4 text-xs font-medium">
+          From {reviews.length} written review{reviews.length === 1 ? "" : "s"}
+        </p>
         {reviews.length > 0 && (
-          <ul className="mt-4 flex flex-col gap-1.5" aria-label="Written reviews by star rating">
+          <ul className="mt-2 flex flex-col gap-1.5" aria-label="Written reviews by star rating">
             {counts.map(([s, n]) => {
               const pct = Math.round((n / reviews.length) * 100);
               return (
@@ -227,9 +230,6 @@ export function ReviewsSection({
             })}
           </ul>
         )}
-        <p className="mt-2 text-xs text-muted-foreground">
-          Breakdown of {reviews.length} written review{reviews.length === 1 ? "" : "s"}
-        </p>
 
         <div className="mt-6 border-t border-border pt-5">
           <p className="text-sm font-medium">Own this product?</p>

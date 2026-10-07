@@ -154,3 +154,4 @@
   | `surface` / `border` | `rgba(255,255,255,.58)` / `rgba(18,18,31,.10)` | glass panels |
 - **Sizes:** shoes, clothing and watches only. Jewelry in the catalog is earrings only, so it stays unsized. Each product's real stock is split across its sizes in a fixed pattern (some edge sizes sell out). The card "+" opens a size picker, and a simple size-guide chart is on the product page.
 - **Shipping country:** USA only for now, shown in the header ("Delivering to USA"), the buy box and checkout.
+- **Demo data polish:** reviews show "N star ratings" and label the star bars "From N written reviews". Seeded review dates are spread over the past ~6 months, because DummyJSON gives them all one date. The slow dispatch tiers are compressed (1 week → 3–5, 2 weeks → 5–7, 1 month → 7–10 business days). Today's deals only shows products rated 4★ and up. The breadcrumb drops the department when it has the same name as the category.

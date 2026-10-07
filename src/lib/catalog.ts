@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, gt, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, ne, sql } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db";
 import { categories, products, productVariants, reviews } from "@/db/schema";
@@ -37,6 +37,8 @@ export type ProductCardData = {
   sizeType?: "shoe_men" | "shoe_women" | "apparel" | "watch_band" | null;
 };
 
+export const DEAL_MIN_RATING = 4;
+
 export async function getDeals(limit = 5): Promise<ProductCardData[]> {
   "use cache";
   cacheLife("hours");
@@ -44,7 +46,8 @@ export async function getDeals(limit = 5): Promise<ProductCardData[]> {
   return db
     .select(cardFields)
     .from(products)
-    .where(gt(products.stock, 0))
+    // Owner decision: the deals rail only shows products rated 4 stars and up.
+    .where(and(gt(products.stock, 0), gte(products.rating, DEAL_MIN_RATING)))
     .orderBy(desc(sql`(${products.listPriceCents} - ${products.priceCents})::float / ${products.listPriceCents}`), asc(products.id))
     .limit(limit);
 }

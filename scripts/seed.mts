@@ -64,17 +64,26 @@ const CATEGORY_META: Record<string, [name: string, order: number]> = {
   sunglasses: ["Sunglasses", 22],
 };
 
-// "Ships in …" text -> business days before dispatch.
+// "Ships in …" text -> business days before dispatch. The slow tiers are
+// compressed (owner decision) so the slowest delivery is about two weeks.
 const DISPATCH: Record<string, [min: number, max: number]> = {
   "Ships overnight": [0, 1],
   "Ships in 1-2 business days": [1, 2],
   "Ships in 3-5 business days": [3, 5],
-  "Ships in 1 week": [5, 7],
-  "Ships in 2 weeks": [10, 14],
-  "Ships in 1 month": [20, 25],
+  "Ships in 1 week": [3, 5],
+  "Ships in 2 weeks": [5, 7],
+  "Ships in 1 month": [7, 10],
 };
 
 const cents = (dollars: number) => Math.round(dollars * 100);
+
+/** DummyJSON dates every review on the same day; spread them over the past ~6 months, repeatably. */
+function reviewDate(productId: number, index: number) {
+  const daysAgo = 4 + ((productId * 37 + index * 53) % 175);
+  const d = new Date(Date.now() - daysAgo * 86_400_000);
+  d.setUTCHours(9 + ((productId + index * 5) % 10), (productId * 7 + index * 13) % 60, 0, 0);
+  return d;
+}
 
 const slugify = (s: string) =>
   s
@@ -213,12 +222,12 @@ async function main() {
   await db.delete(reviews).where(isNull(reviews.userId));
   await db.insert(reviews).values(
     items.flatMap((p) =>
-      p.reviews.map((r) => ({
+      p.reviews.map((r, i) => ({
         productId: p.id,
         authorName: r.reviewerName,
         rating: r.rating,
         comment: r.comment,
-        createdAt: new Date(r.date),
+        createdAt: reviewDate(p.id, i),
       })),
     ),
   );

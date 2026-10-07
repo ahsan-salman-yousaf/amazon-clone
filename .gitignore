@@ -23,3 +23,13 @@ test-results/
 coverage/
 
 .DS_Store
+
+# from create-next-app
+/build
+*.pem
+.pnp
+.pnp.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*

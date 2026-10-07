@@ -14,7 +14,7 @@ Captured on 2026-10-07 with a Playwright browser at 1440×900 and 390×844, logg
 
 **Gaps:**
 - **Filled cart, and the checkout redirect to sign-in.** These weren't captured. Adding an item to a real Amazon cart was blocked by the agent's permission check, and I didn't work around it. The owner's account screenshots can cover this, or the browser step can be re-run with permission.
-- **Signed-in flows.** Sign-up, checkout, orders, returns and account are left to the owner (see the end of this file).
+- **Signed-in flows.** Not captured; skipped by owner decision (see the end of this file).
 
 ---
 
@@ -120,13 +120,5 @@ Captured on 2026-10-07 with a Playwright browser at 1440×900 and 390×844, logg
 
 ---
 
-## Owner: signed-in flows (to add)
-Please drop screenshots into `recon/` with these names, and I'll add a section for each one:
-- `10-signup*.png`: account creation
-- `11-cart-filled*.png`: a cart with items (quantity, save for later, subtotal)
-- `12-checkout*.png`: every checkout step up to just before "Place your order". Please don't place a real order.
-- `13-orders*.png`: order history and order details or tracking
-- `14-returns*.png`: the return request flow
-- `15-account*.png`: the Your Account hub and addresses
-
-Blur or crop out personal data (name, address, card, order numbers) before committing. The repo is public.
+## Signed-in flows
+The signed-in Amazon flows (sign-up, a filled cart, checkout, orders, returns and the account pages) were not captured. The owner decided on 2026-10-07 to skip them. Olympus Cart's versions of those flows were designed from the logged-out recon above, together with the decisions recorded in `docs/PLAN.md`.

@@ -90,7 +90,7 @@
 - **Catalog:** DummyJSON (about 194 products, about 24 categories, with images, rating, stock and discount).
 - **Payments:** Stripe **test mode** only (`pk_test_`/`sk_test_`); never live. The owner adds the keys to `.env` by the checkout step (Step 4.5). Until then the simulated provider stands in.
 - **Hosting:** Vercel, with the owner running `vercel login`. Postgres on Neon.
-- **Recon:** the agent captured the logged-out flows (`recon/`). The owner adds the signed-in flows in parallel.
+- **Recon:** the agent captured the logged-out flows (`recon/`). Signed-in Amazon screenshots were skipped (owner decision, 2026-10-07).
 - **Visual direction:** clean modern retail with glass surfaces (translucent panels and backdrop blur over soft colour fields).
   - Motion is smooth and fast: transitions of 150–450ms, no animations that delay loading, and everything off under `prefers-reduced-motion`.
 - **UI kit:** shadcn/ui on **Radix** primitives, **Nova** preset (Lucide icons, Geist font). Compared in `docs/design/presets.html`.

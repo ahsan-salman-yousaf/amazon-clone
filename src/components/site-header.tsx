@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
-import { MenuIcon, SearchIcon, ShoppingCartIcon, UserIcon } from "lucide-react";
+import { MenuIcon, SearchIcon, ShoppingCartIcon } from "lucide-react";
 import { DepartmentDrawer } from "@/components/department-drawer";
 import { HeaderSearch } from "@/components/header-search";
 import { SearchForm } from "@/components/search-form";
@@ -35,7 +35,15 @@ function useHeaderSearchVisible() {
   return !isHome || heroHidden;
 }
 
-export function SiteHeader({ departments, cartBadge }: { departments: DepartmentGroup[]; cartBadge?: ReactNode }) {
+export function SiteHeader({
+  departments,
+  cartBadge,
+  account,
+}: {
+  departments: DepartmentGroup[];
+  cartBadge?: ReactNode;
+  account: ReactNode;
+}) {
   const showSearch = useHeaderSearchVisible();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -96,14 +104,7 @@ export function SiteHeader({ departments, cartBadge }: { departments: Department
           >
             <SearchIcon aria-hidden className="size-5" />
           </button>
-          <Link
-            href="/signin"
-            className="flex h-10 items-center gap-1.5 rounded-xl px-2.5 text-sm transition-colors hover:bg-black/5 focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"
-          >
-            <UserIcon aria-hidden className="size-4" />
-            <span className="hidden sm:inline">Sign in</span>
-            <span className="sr-only sm:hidden">Sign in</span>
-          </Link>
+          {account}
           <Link
             href="/cart"
             className="relative grid size-10 place-items-center rounded-xl transition-colors hover:bg-black/5 focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"

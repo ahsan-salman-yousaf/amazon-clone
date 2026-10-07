@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
+import { AccountMenu, SignInLink } from "@/components/auth/account-menu";
 import { CartBadge } from "@/components/cart/cart-badge";
 import { SiteHeader } from "@/components/site-header";
 import { getCategories } from "@/lib/catalog";
@@ -45,6 +46,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         </p>
         <SiteHeader
           departments={departments}
+          account={
+            <Suspense fallback={<SignInLink />}>
+              <AccountMenu />
+            </Suspense>
+          }
           cartBadge={
             <Suspense>
               <CartBadge />

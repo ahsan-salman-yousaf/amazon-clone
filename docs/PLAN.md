@@ -112,6 +112,11 @@
   - **Mobile:** a bottom bar fixed to the screen, with price and Add to cart.
 - **Shipping:** standard delivery (2 business days in transit) is free on orders of $35 or more, and $5.99 below that. Express (1 business day in transit) is $9.99 flat. The cart shows free-delivery progress.
 - **Cart extras in P0:** Save for later only. Per-item delivery dates in the cart and a recently viewed rail are left out.
+- **Auth:** Auth.js v5 with the Credentials provider, JWT sessions and bcrypt.
+  - **Page:** a single `/signin` page with "Sign in | Create account" tabs, email and password on one screen.
+  - **Passwords:** at least 8 characters, with a show/hide toggle.
+  - **Demo account:** a one-click "Try the demo account" button, with its credentials shown on the page.
+  - **After sign-in:** the guest cart merges into the account and the shopper returns to where they were.
 - **Colour scheme:** *Graphite Coral*, chosen from `docs/design/color-schemes.html`. Every pair passes WCAG AA.
 
   | Token | Value | Use |

@@ -7,7 +7,9 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { isNull, sql } from "drizzle-orm";
-import { categories, products, reviews } from "../src/db/schema.ts";
+import bcrypt from "bcryptjs";
+import { categories, products, reviews, users } from "../src/db/schema.ts";
+import { DEMO_EMAIL, DEMO_NAME, DEMO_PASSWORD } from "../src/lib/demo.ts";
 
 type DummyProduct = {
   id: number;
@@ -193,6 +195,12 @@ async function main() {
       })),
     ),
   );
+
+  // Demo shopper for the one-click sign-in (password is public by design).
+  await db
+    .insert(users)
+    .values({ name: DEMO_NAME, email: DEMO_EMAIL, passwordHash: await bcrypt.hash(DEMO_PASSWORD, 10) })
+    .onConflictDoNothing();
 
   const [{ count }] = (await db.execute(sql`select count(*)::int as count from products`)).rows as { count: number }[];
   console.log(`Seeded ${Object.keys(CATEGORY_META).length} categories, ${rows.length} products (${count} in table), reviews.`);

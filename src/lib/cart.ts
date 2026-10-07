@@ -1,7 +1,8 @@
 import "server-only";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
+import { currentUserId } from "@/auth";
 import { db } from "@/db";
 import { cartItems, carts, products } from "@/db/schema";
 
@@ -14,11 +15,27 @@ export const MAX_PER_LINE = 10;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** The current cart id from the cookie, if it points at a real cart. */
+const cookieOptions = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+  maxAge: CART_MAX_AGE,
+};
+
+/**
+ * The current cart: the signed-in user's cart, or the guest cart in the cookie.
+ * A cookie pointing at someone else's cart is ignored.
+ */
 export async function readCartId(): Promise<string | null> {
+  const userId = await currentUserId();
+  if (userId) {
+    const [own] = await db.select({ id: carts.id }).from(carts).where(eq(carts.userId, userId)).limit(1);
+    return own?.id ?? null;
+  }
   const id = (await cookies()).get(CART_COOKIE)?.value;
   if (!id || !UUID.test(id)) return null;
-  const [row] = await db.select({ id: carts.id }).from(carts).where(eq(carts.id, id)).limit(1);
+  const [row] = await db.select({ id: carts.id }).from(carts).where(and(eq(carts.id, id), isNull(carts.userId))).limit(1);
   return row?.id ?? null;
 }
 
@@ -26,15 +43,42 @@ export async function readCartId(): Promise<string | null> {
 export async function getOrCreateCartId(): Promise<string> {
   const existing = await readCartId();
   if (existing) return existing;
-  const [row] = await db.insert(carts).values({}).returning({ id: carts.id });
-  (await cookies()).set(CART_COOKIE, row.id, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: CART_MAX_AGE,
-  });
+  const userId = await currentUserId();
+  const [row] = await db
+    .insert(carts)
+    .values({ userId })
+    .onConflictDoUpdate({ target: carts.userId, set: { updatedAt: new Date() } })
+    .returning({ id: carts.id });
+  if (!userId) (await cookies()).set(CART_COOKIE, row.id, cookieOptions);
   return row.id;
+}
+
+/**
+ * On sign-in: move the guest cart's lines into the user's cart (quantities
+ * add up, capped as usual), then drop the guest cart and its cookie.
+ */
+export async function mergeGuestCartInto(userId: string) {
+  const jar = await cookies();
+  const guestId = jar.get(CART_COOKIE)?.value;
+  jar.delete(CART_COOKIE);
+  if (!guestId || !UUID.test(guestId)) return;
+  const [guest] = await db.select({ id: carts.id }).from(carts).where(and(eq(carts.id, guestId), isNull(carts.userId))).limit(1);
+  if (!guest) return;
+
+  const [own] = await db.select({ id: carts.id }).from(carts).where(eq(carts.userId, userId)).limit(1);
+  if (!own) {
+    await db.update(carts).set({ userId }).where(eq(carts.id, guest.id));
+    return;
+  }
+  const lines = await db.select().from(cartItems).where(eq(cartItems.cartId, guest.id));
+  for (const l of lines) {
+    if (l.savedForLater) {
+      await db.insert(cartItems).values({ ...l, cartId: own.id }).onConflictDoNothing();
+    } else {
+      await addItem(own.id, l.productId, l.quantity);
+    }
+  }
+  await db.delete(carts).where(eq(carts.id, guest.id));
 }
 
 /**

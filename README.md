@@ -10,7 +10,7 @@ A working rebuild of Amazon's core shopping loop: browse, search, product pages,
 
 1. Open the [live site](https://olympus-cart.vercel.app), search for something (e.g. "phone") and add a product to your cart.
 2. Open the cart and choose **Proceed to checkout**. On the sign-in page, choose **Try the demo account**, or create an account.
-   Demo account: `demo@olympuscart.example` / `olympus-demo`
+   Demo account: `demo@olympuscart.example` / `olympus-demo`. It comes with two backdated, already-delivered sample orders (`OC-DEMO-*`), so you can try a **return** straight away.
 3. Go through the three checkout steps, then pay with a Stripe test card:
 
 | Card | Result |
@@ -33,7 +33,17 @@ For any card, use a future expiry date (e.g. `12/29`) and any 3-digit CVC. After
 | **Auth** | Email and password on one screen, with Sign in / Create account tabs, a one-click demo account, and a return to where you were after signing in. |
 | **Checkout** | Three guided steps (address → delivery → payment) with an animated stepper. The address is saved to your account, delivery is Standard or Express with real dates, and tax is an estimated 8%. Errors are specific to what went wrong (e.g. "declined for insufficient funds"). |
 | **Payments** | Stripe Payment Element in test mode. The server re-prices the cart, reserves stock in a transaction and creates the PaymentIntent with an idempotency key. The order is marked paid only after the server checks with Stripe, and a signed webhook records the result as well. Live keys are refused. |
-| **Orders** | Confirmation page, order details with a status timeline, and order history. |
+| **Orders** | Confirmation page, order details with a status timeline, and order history. The status moves on its own: shipped a few minutes after payment, then delivered on the estimated date. |
+
+**Also built (P1):**
+
+| Area | What it does |
+|---|---|
+| **Returns** | Request a return from order details: choose items and quantities, then a reason. Each product's own return window applies (e.g. "90 days return policy"). The refund (items plus their tax) is issued about 2 minutes later, as a real Stripe test-mode refund for Stripe orders, and the stock goes back on sale. |
+| **Written reviews** | Signed-in shoppers write one review per product (stars, headline, text); writing again edits it. Buyers get a **Verified purchase** badge. Star filters, and the rating updates when you post. |
+| **Wishlist** | A heart on every card and product page, plus a `/wishlist` page with Move to cart. |
+| **Account & addresses** | `/account`: edit your name; add, edit, delete (with confirmation) and set a default address. Checkout lets you pick a saved address. |
+| **Customers also viewed** | Built from real, anonymous per-browser view sessions. Until there is enough data, the rail is honestly labelled "More from {category}". |
 
 Accessibility is built in from the start:
 - keyboard navigation, visible focus rings and a skip link
@@ -55,7 +65,6 @@ Accessibility is built in from the start:
 - Multi-currency (USD only) and US-only shipping
 - ML recommendations: "You might also like" shows top-rated products from the same category
 
-P1 items (written reviews, wishlist, address book, returns) are tracked in [docs/PLAN.md](docs/PLAN.md).
 
 ## Stack
 

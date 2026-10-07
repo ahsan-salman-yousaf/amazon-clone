@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import { AccountMenu, SignInLink } from "@/components/auth/account-menu";
@@ -26,6 +26,11 @@ export const metadata: Metadata = {
   description: "Olympus Cart is a demo shopping site. It is not affiliated with Amazon.",
 };
 
+export const viewport: Viewport = {
+  themeColor: "#F6F6F4",
+  colorScheme: "light",
+};
+
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const departments = groupDepartments(await getCategories());
   return (
@@ -33,6 +38,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        {/* Product images come from DummyJSON's CDN. */}
+        <link rel="preconnect" href="https://cdn.dummyjson.com" crossOrigin="" />
+      </head>
       <body className="flex min-h-full flex-col">
         <a
           href="#main"

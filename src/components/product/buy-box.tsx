@@ -1,5 +1,6 @@
 import { RotateCcwIcon, ShieldCheckIcon, StoreIcon, TruckIcon } from "lucide-react";
 import { DeliveryDate } from "@/components/delivery-date";
+import { DiscountBadge } from "@/components/discount-badge";
 import { AddToCartForm } from "@/components/product/add-to-cart-form";
 import { EXPRESS_TRANSIT_DAYS } from "@/lib/delivery";
 import { discountPercent, formatMoney } from "@/lib/format";
@@ -30,8 +31,8 @@ export function BuyBox({ product: p }: { product: BuyBoxProduct }) {
   return (
     <section aria-label="Buy" className="glass flex flex-col gap-4 rounded-3xl p-5">
       <div>
-        <p className="flex items-baseline gap-2">
-          {off > 0 && <span className="text-sm font-semibold text-sale">-{off}%</span>}
+        <p className="flex items-center gap-2">
+          {off > 0 && <DiscountBadge percent={off} className="px-2.5 py-1 text-xs" />}
           <span className="text-3xl font-semibold tracking-tight">{formatMoney(p.priceCents)}</span>
         </p>
         {off > 0 && (

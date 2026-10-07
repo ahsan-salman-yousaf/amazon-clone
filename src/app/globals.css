@@ -145,6 +145,13 @@
   }
   html {
     @apply font-sans;
+    color-scheme: light;
+    /* Keep focused and anchored elements clear of the sticky header. */
+    scroll-padding-top: 6rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+  a, button, input, select, textarea, label, summary, [role="button"] {
+    touch-action: manipulation;
   }
 }
 

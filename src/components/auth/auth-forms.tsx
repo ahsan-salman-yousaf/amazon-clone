@@ -38,13 +38,15 @@ function Field({
           id={id}
           name={name}
           type={isPassword && show ? "text" : type}
+          spellCheck={type === "email" || isPassword ? false : undefined}
+          autoCapitalize={type === "email" || isPassword ? "none" : undefined}
           autoComplete={autoComplete}
           defaultValue={defaultValue}
           required
           aria-invalid={!!error}
           aria-describedby={describedBy}
           className={cn(
-            "h-11 w-full rounded-xl border bg-white/90 px-3.5 text-base transition-shadow focus-visible:ring-3 focus-visible:ring-ring/25 focus-visible:outline-none sm:text-sm",
+            "h-11 w-full rounded-xl border bg-white/90 px-3.5 text-base text-foreground transition-shadow focus-visible:ring-3 focus-visible:ring-ring/25 focus-visible:outline-none sm:text-sm",
             error ? "border-sale" : "border-input",
             isPassword && "pr-12",
           )}

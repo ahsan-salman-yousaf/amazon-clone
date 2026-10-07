@@ -3,8 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { TruckIcon } from "lucide-react";
-import { moveToCart, removeFromCart, saveForLater } from "@/app/cart/actions";
-import { QuantitySelect } from "@/components/cart/quantity-select";
+import { CartLineShell, CartNotices, LineControls } from "@/components/cart/line-controls";
 import { StockStatus } from "@/components/product/buy-box";
 import { getCartView, MAX_PER_LINE, readCartId, type CartLine } from "@/lib/cart";
 import { formatMoney } from "@/lib/format";
@@ -13,7 +12,6 @@ import { FREE_SHIPPING_THRESHOLD_CENTS, amountToFreeShipping, shippingCents } fr
 export const metadata: Metadata = { title: "Cart" };
 
 const ring = "focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none";
-const linkButton = `rounded-md text-sm font-medium text-foreground/75 underline-offset-2 hover:text-foreground hover:underline ${ring}`;
 
 export default function CartPage() {
   return (
@@ -51,6 +49,7 @@ async function Cart() {
   const progress = Math.min(100, Math.round((cart.subtotalCents / FREE_SHIPPING_THRESHOLD_CENTS) * 100));
 
   return (
+    <CartNotices>
     <div className="mt-6 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-10">
       <div>
         {cart.lines.length > 0 ? (
@@ -127,13 +126,14 @@ async function Cart() {
         </aside>
       )}
     </div>
+    </CartNotices>
   );
 }
 
 function LineItem({ line: l, saved = false }: { line: CartLine; saved?: boolean }) {
   const outOfStock = l.stock <= 0;
   return (
-    <li className="flex gap-4 py-5">
+    <CartLineShell>
       <Link href={`/p/${l.slug}`} className={`relative size-24 shrink-0 overflow-hidden rounded-2xl bg-white/80 sm:size-28 ${ring}`}>
         <Image src={l.thumbnail} alt="" fill sizes="112px" className="object-contain p-2" />
       </Link>
@@ -153,24 +153,16 @@ function LineItem({ line: l, saved = false }: { line: CartLine; saved?: boolean 
         {!saved && l.quantity > l.stock && l.stock > 0 && (
           <p className="text-xs text-sale">Only {l.stock} available; your quantity will be reduced at checkout.</p>
         )}
-        <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2">
-          {!saved && !outOfStock && <QuantitySelect productId={l.productId} quantity={l.quantity} max={Math.min(l.stock, MAX_PER_LINE)} title={l.title} />}
-          <form action={removeFromCart}>
-            <input type="hidden" name="productId" value={l.productId} />
-            <button type="submit" className={linkButton}>
-              Remove<span className="sr-only"> {l.title}</span>
-            </button>
-          </form>
-          <form action={saved ? moveToCart : saveForLater}>
-            <input type="hidden" name="productId" value={l.productId} />
-            <button type="submit" className={linkButton}>
-              {saved ? "Move to cart" : "Save for later"}
-              <span className="sr-only"> {l.title}</span>
-            </button>
-          </form>
-        </div>
+        <LineControls
+          productId={l.productId}
+          title={l.title}
+          quantity={l.quantity}
+          max={Math.min(l.stock, MAX_PER_LINE)}
+          saved={saved}
+          canBuy={!outOfStock}
+        />
       </div>
-    </li>
+    </CartLineShell>
   );
 }
 

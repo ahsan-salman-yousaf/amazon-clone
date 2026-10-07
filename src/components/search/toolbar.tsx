@@ -17,7 +17,7 @@ export function SortSelect({ sort, sorts }: { sort: string; sorts: Record<string
       <select
         value={sort}
         onChange={(e) => update({ sort: e.target.value === "featured" ? null : e.target.value })}
-        className={`h-9 rounded-full border border-input bg-white/80 pr-8 pl-3 text-sm ${ring}`}
+        className={`h-9 rounded-full border border-input bg-white pr-8 pl-3 text-sm text-foreground ${ring}`}
       >
         {Object.entries(sorts).map(([v, label]) => (
           <option key={v} value={v}>

@@ -54,3 +54,12 @@ export async function saveForLater(formData: FormData) {
 export async function moveToCart(formData: FormData) {
   await withLine(formData, (c, p) => setSavedForLater(c, p, false));
 }
+
+/** Undo for "Remove": puts the line back with its quantity and saved state. */
+export async function restoreLine(productId: number, quantity: number, saved: boolean) {
+  const cartId = await readCartId();
+  if (!cartId || !Number.isInteger(productId) || productId <= 0) return;
+  await addItem(cartId, productId, quantity);
+  if (saved) await setSavedForLater(cartId, productId, true);
+  refresh();
+}

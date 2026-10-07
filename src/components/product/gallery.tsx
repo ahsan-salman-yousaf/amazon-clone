@@ -36,9 +36,19 @@ export function ProductGallery({ images, title }: { images: string[]; title: str
         ))}
       </div>
       {shown.length > 1 && (
-        <div className="flex justify-center gap-1.5 lg:hidden" aria-hidden>
+        // Swipe has a tap/keyboard alternative: each dot jumps to its image.
+        <div className="-mt-1 flex justify-center lg:hidden" role="group" aria-label="Choose image">
           {shown.map((src, i) => (
-            <span key={src} className={cn("size-1.5 rounded-full transition-colors", i === index ? "bg-primary" : "bg-black/20")} />
+            <button
+              key={src}
+              type="button"
+              aria-label={`Show image ${i + 1} of ${shown.length}`}
+              aria-pressed={i === index}
+              onClick={() => track.current?.scrollTo({ left: i * track.current.clientWidth, behavior: "smooth" })}
+              className="grid size-7 place-items-center rounded-full focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"
+            >
+              <span className={cn("size-1.5 rounded-full transition-[background-color,transform] duration-200", i === index ? "scale-125 bg-primary" : "bg-black/20")} />
+            </button>
           ))}
         </div>
       )}

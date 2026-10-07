@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 const ring = "focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none";
 const inputClass = (error?: string) =>
   cn(
-    "h-11 w-full rounded-xl border bg-white/90 px-3.5 text-base transition-[border-color,box-shadow] duration-200 focus-visible:ring-3 focus-visible:ring-ring/25 focus-visible:outline-none sm:text-sm",
+    "h-11 w-full rounded-xl border bg-white/90 px-3.5 text-foreground text-base transition-[border-color,box-shadow] duration-200 focus-visible:ring-3 focus-visible:ring-ring/25 focus-visible:outline-none sm:text-sm",
     error ? "border-sale" : "border-input",
   );
 
@@ -238,9 +238,9 @@ function Field({
 function SimulatedCardFields({ error }: { error?: string }) {
   return (
     <div className="grid gap-4 sm:grid-cols-6">
-      <Field className="sm:col-span-6" label="Card number" name="cardNumber" inputMode="numeric" autoComplete="off" placeholder="4242 4242 4242 4242" error={error} />
-      <Field className="sm:col-span-3" label="Expiry (MM/YY)" name="cardExpiry" inputMode="numeric" autoComplete="off" placeholder="12/29" />
-      <Field className="sm:col-span-3" label="Security code" name="cardCvc" inputMode="numeric" autoComplete="off" placeholder="123" maxLength={4} />
+      <Field className="sm:col-span-6" label="Card number" name="cardNumber" inputMode="numeric" autoComplete="off" placeholder="4242 4242 4242 4242…" error={error} />
+      <Field className="sm:col-span-3" label="Expiry (MM/YY)" name="cardExpiry" inputMode="numeric" autoComplete="off" placeholder="12/29…" />
+      <Field className="sm:col-span-3" label="Security code" name="cardCvc" inputMode="numeric" autoComplete="off" placeholder="123…" maxLength={4} />
       <Field className="sm:col-span-6" label="Name on card" name="cardName" autoComplete="off" />
     </div>
   );

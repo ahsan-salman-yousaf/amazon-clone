@@ -38,7 +38,7 @@ export function SearchForm({
         type="search"
         defaultValue={defaultValue}
         autoFocus={autoFocus}
-        placeholder={lg ? "Search products" : "Search Olympus Cart"}
+        placeholder={lg ? "Search products…" : "Search Olympus Cart…"}
         autoComplete="off"
         enterKeyHint="search"
         className={cn(

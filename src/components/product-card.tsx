@@ -3,6 +3,7 @@ import Link from "next/link";
 import { StarIcon } from "lucide-react";
 import { QuickAdd } from "@/components/cart/quick-add";
 import { DeliveryDate } from "@/components/delivery-date";
+import { DiscountBadge } from "@/components/discount-badge";
 import type { ProductCardData } from "@/lib/catalog";
 import { discountPercent, formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -24,11 +25,7 @@ export function ProductCard({ product: p, className }: { product: ProductCardDat
             sizes="(min-width: 1024px) 220px, 45vw"
             className="object-contain p-4 transition-transform duration-300 ease-smooth group-hover:scale-[1.04]"
           />
-          {off >= 5 && (
-            <span className="absolute top-2.5 left-2.5 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-sale">
-              -{off}%
-            </span>
-          )}
+          {off >= 5 && <DiscountBadge percent={off} className="absolute top-2.5 left-2.5" />}
         </div>
         <div className="px-0.5">
           <h3 className="line-clamp-2 text-sm leading-snug">{p.title}</h3>

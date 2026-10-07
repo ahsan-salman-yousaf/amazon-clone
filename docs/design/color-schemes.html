@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Olympus Cart — color schemes</title>
+<style>
+  :root {
+    --bg: #F7F7FB; --surface: rgba(255,255,255,.58); --border: rgba(18,18,31,.10);
+    --ink: #12121F; --muted: #50506A; --primary: #12121F; --on-primary: #FFFFFF;
+    --accent-bg: #A78BFA; --on-accent: #12121F; --spectrum: linear-gradient(90deg,#7CF5FF,#A78BFA,#FF8AD8,#FFD36E);
+    --blob1: #7CF5FF; --blob2: #FF8AD8; --blob3: #C4B5FD; --blob-opacity: .5;
+    --thumb: rgba(255,255,255,.7); --input-bg: rgba(255,255,255,.85); --input-ink: #12121F;
+    --sale: #B42318; --star: #7A3FD1; --stock: #1F7A3A; --chip-bg: rgba(255,255,255,.35); --chip-on: rgba(255,255,255,.75);
+    --ease: cubic-bezier(.2,.8,.2,1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--ink); min-height: 100vh; overflow-x: hidden;
+    transition: background-color .45s var(--ease), color .45s var(--ease);
+  }
+  /* soft color fields behind the glass; transform-only drift is GPU-cheap */
+  .blob { position: fixed; border-radius: 50%; filter: blur(80px); opacity: var(--blob-opacity); z-index: 0; pointer-events: none;
+    transition: background-color .6s var(--ease), opacity .6s var(--ease); will-change: transform; }
+  .b1 { width: 520px; height: 520px; background: var(--blob1); top: -160px; left: -140px; animation: drift1 26s ease-in-out infinite alternate; }
+  .b2 { width: 480px; height: 480px; background: var(--blob2); bottom: -180px; right: -120px; animation: drift2 30s ease-in-out infinite alternate; }
+  .b3 { width: 380px; height: 380px; background: var(--blob3); top: 40%; left: 45%; animation: drift3 34s ease-in-out infinite alternate; }
+  @keyframes drift1 { to { transform: translate(120px, 80px) scale(1.1); } }
+  @keyframes drift2 { to { transform: translate(-140px, -60px) scale(1.15); } }
+  @keyframes drift3 { to { transform: translate(-160px, 90px) scale(.9); } }
+  .wrap { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 0 16px 48px; }
+
+  .glass {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+    backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%);
+    box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 10px 30px -12px rgba(0,0,0,.22);
+    transition: background-color .45s var(--ease), border-color .45s var(--ease);
+  }
+  .demo-banner { font-size: 12px; text-align: center; padding: 6px 12px; color: var(--muted); }
+
+  /* picker */
+  .picker { position: sticky; top: 12px; z-index: 10; margin: 12px 0 20px; padding: 14px; }
+  .picker h1 { font-size: 16px; margin: 0 0 4px; }
+  .group { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 10px 2px 6px; }
+  .chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+  .chip { display: flex; gap: 10px; align-items: center; text-align: left; padding: 10px 12px; border-radius: 12px;
+    border: 1.5px solid var(--border); background: var(--chip-bg); color: var(--ink); cursor: pointer; font: inherit;
+    transition: transform .18s var(--ease), border-color .2s var(--ease), background-color .2s var(--ease); }
+  .chip:hover { transform: translateY(-1px); }
+  .chip[aria-pressed="true"] { border-color: var(--ink); background: var(--chip-on); }
+  .chip:focus-visible, .btn:focus-visible, .search input:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+  .sw { display: flex; flex-shrink: 0; }
+  .sw i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #fff; margin-left: -6px; }
+  .sw i:first-child { margin-left: 0; }
+  .chip b { display: block; font-size: 14px; }
+  .chip small { color: var(--muted); font-size: 12px; }
+  .chips.compact { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .chips.compact .chip { padding: 7px 10px; }
+  .chips.compact small { display: none; }
+
+  /* mock storefront */
+  header.site { display: flex; align-items: center; gap: 16px; padding: 12px 16px; position: sticky; top: 12px; z-index: 5; overflow: hidden; }
+  header.site::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--spectrum); }
+  .logo { font-weight: 800; letter-spacing: -.02em; font-size: 20px; white-space: nowrap; }
+  .logo span { background: var(--spectrum); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .search { flex: 1; display: flex; min-width: 0; }
+  .search input { flex: 1; min-width: 0; padding: 10px 14px; border-radius: 12px 0 0 12px; border: 1px solid var(--border);
+    background: var(--input-bg); font: inherit; color: var(--input-ink); }
+  .search input::placeholder { color: var(--muted); }
+  .search button { border-radius: 0 12px 12px 0; }
+  .nav-meta { display: flex; gap: 14px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .btn { border: 0; border-radius: 12px; padding: 10px 16px; font: inherit; font-weight: 600; cursor: pointer;
+    transition: transform .15s var(--ease), filter .2s var(--ease), background-color .45s var(--ease), color .45s var(--ease); }
+  .btn:hover { filter: brightness(1.06) saturate(1.05); }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--primary); color: var(--on-primary); }
+  .btn-accent { background: var(--accent-bg); background-size: 160% 100%; background-position: 0% 50%; color: var(--on-accent);
+    transition: background-position .5s var(--ease), transform .15s var(--ease), filter .2s var(--ease); }
+  .btn-accent:hover { background-position: 100% 50%; }
+  .btn-ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--border); }
+
+  .hero { margin-top: 18px; padding: 32px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; align-items: center; }
+  .hero h2 { font-size: clamp(26px, 4vw, 42px); line-height: 1.08; letter-spacing: -.02em; margin: 0 0 10px; }
+  .hero p { color: var(--muted); margin: 0 0 18px; max-width: 46ch; }
+  .hero .art { aspect-ratio: 4/3; border-radius: 16px; background:
+      radial-gradient(circle at 25% 30%, var(--blob1), transparent 55%),
+      radial-gradient(circle at 75% 40%, var(--blob2), transparent 55%),
+      radial-gradient(circle at 50% 80%, var(--blob3), transparent 55%), var(--thumb); }
+
+  .section-title { font-size: 18px; margin: 28px 4px 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+  .card { padding: 12px; display: flex; flex-direction: column; gap: 6px;
+    transition: transform .25s var(--ease), box-shadow .25s var(--ease), background-color .45s var(--ease); }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -18px rgba(0,0,0,.35); }
+  .thumb { aspect-ratio: 1; border-radius: 12px; background: var(--thumb); display: grid; place-items: center; font-size: 44px; }
+  .card h3 { font-size: 14px; margin: 4px 0 0; font-weight: 600; }
+  .stars { color: var(--star); font-size: 13px; letter-spacing: 1px; }
+  .stars span { color: var(--muted); letter-spacing: 0; }
+  .price { font-size: 20px; font-weight: 700; }
+  .price s { font-size: 13px; color: var(--muted); font-weight: 400; margin-left: 6px; }
+  .off { color: var(--sale); font-weight: 700; font-size: 13px; }
+  .eta { font-size: 12.5px; color: var(--muted); }
+  .eta b { color: var(--ink); }
+  .card .btn { margin-top: auto; padding: 8px 12px; font-size: 14px; }
+
+  .pdp { display: grid; grid-template-columns: 1fr 320px; gap: 14px; margin-top: 14px; }
+  .pdp .info { padding: 20px; }
+  .buybox { padding: 20px; display: flex; flex-direction: column; gap: 10px; align-self: start; }
+  .stock { color: var(--stock); font-weight: 600; }
+  .contrast { margin-top: 28px; padding: 16px; font-size: 13px; }
+  .contrast table { width: 100%; border-collapse: collapse; }
+  .contrast td, .contrast th { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+  .pass { color: var(--stock); font-weight: 700; } .fail { color: var(--sale); font-weight: 700; }
+
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .4s; animation-timing-function: cubic-bezier(.2,.8,.2,1); }
+
+  @media (max-width: 760px) {
+    .picker { position: static; }
+    header.site { flex-wrap: wrap; } .nav-meta { display: none; }
+    .hero, .pdp { grid-template-columns: 1fr; } .hero { padding: 20px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+    ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+<div class="wrap">
+  <div class="demo-banner">Demo project, not affiliated with Amazon · color scheme preview</div>
+
+  <section class="picker glass" aria-label="Color schemes">
+    <h1>Pick a scheme. The preview below cross-fades as you click.</h1>
+    <div class="group">Spectral</div>
+    <div class="chips" id="chips-spectral"></div>
+    <div class="group">Earlier options</div>
+    <div class="chips compact" id="chips-classic"></div>
+  </section>
+
+  <header class="site glass">
+    <div class="logo">Olympus<span>Cart</span></div>
+    <form class="search" onsubmit="return false" role="search">
+      <label for="q" style="position:absolute;left:-9999px">Search</label>
+      <input id="q" placeholder="Search Olympus Cart">
+      <button class="btn btn-accent" type="submit">Search</button>
+    </form>
+    <div class="nav-meta"><span>Deliver to 10001</span><span>Sign in</span><span>Orders</span></div>
+    <button class="btn btn-primary">Cart · 2</button>
+  </header>
+
+  <section class="hero glass">
+    <div>
+      <h2>Everything you need, delivered by Friday.</h2>
+      <p>Honest delivery dates before you check out, clear prices and a checkout that fits on one page.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-accent">Shop today's deals</button>
+        <button class="btn btn-ghost">Browse categories</button>
+      </div>
+    </div>
+    <div class="art" aria-hidden="true"></div>
+  </section>
+
+  <h2 class="section-title">Deals for you</h2>
+  <div class="grid">
+    <article class="card glass"><div class="thumb">🎧</div><h3>Over-ear wireless headphones</h3>
+      <div class="stars">★★★★☆ <span>4.5 · 2,184</span></div>
+      <div><span class="off">-32%</span></div><div class="price">$54.99<s>$79.99</s></div>
+      <div class="eta">Arrives <b>Fri, Oct 9</b> · Free delivery</div><button class="btn btn-accent">Add to cart</button></article>
+    <article class="card glass"><div class="thumb">⌚</div><h3>Fitness tracker with heart rate</h3>
+      <div class="stars">★★★★★ <span>4.7 · 921</span></div>
+      <div><span class="off">-15%</span></div><div class="price">$42.50<s>$49.99</s></div>
+      <div class="eta">Arrives <b>Thu, Oct 8</b> · Free delivery</div><button class="btn btn-accent">Add to cart</button></article>
+    <article class="card glass"><div class="thumb">☕</div><h3>Programmable drip coffee maker</h3>
+      <div class="stars">★★★★☆ <span>4.3 · 3,402</span></div>
+      <div>&nbsp;</div><div class="price">$39.00</div>
+      <div class="eta">Arrives <b>Sat, Oct 10</b> · $4.99 delivery</div><button class="btn btn-accent">Add to cart</button></article>
+    <article class="card glass"><div class="thumb">👟</div><h3>Lightweight running shoes</h3>
+      <div class="stars">★★★★☆ <span>4.4 · 610</span></div>
+      <div><span class="off">-20%</span></div><div class="price">$63.99<s>$79.99</s></div>
+      <div class="eta">Arrives <b>Fri, Oct 9</b> · Free delivery</div><button class="btn btn-accent">Add to cart</button></article>
+  </div>
+
+  <h2 class="section-title">Product page buy box</h2>
+  <div class="pdp">
+    <div class="info glass">
+      <h3 style="font-size:22px;margin:0 0 6px">Over-ear wireless headphones, 40h battery</h3>
+      <div class="stars">★★★★☆ <span>4.5 · 2,184 ratings</span></div>
+      <p style="color:var(--muted)">Active noise cancelling, multipoint Bluetooth, and fast charging: 10 minutes gives 4 hours of playback.</p>
+    </div>
+    <aside class="buybox glass">
+      <div><span class="off">-32%</span> <span class="price">$54.99</span><s style="color:var(--muted);margin-left:6px">$79.99</s></div>
+      <div class="eta">Arrives <b>Friday, Oct 9</b> if you order within 4 hrs</div>
+      <div class="stock">In stock</div>
+      <button class="btn btn-accent">Add to cart</button>
+      <button class="btn btn-primary">Buy now</button>
+    </aside>
+  </div>
+
+  <section class="contrast glass" aria-live="polite">
+    <b id="cname"></b>: WCAG contrast (AA needs 4.5 for normal text, 3 for large or bold text and UI). For gradient buttons, the lowest-contrast stop is shown.
+    <table id="ctable"></table>
+  </section>
+</div>
+
+<script>
+// Light defaults; dark schemes override surface/border/thumb/input/chip tokens.
+const LIGHT = { surface:"rgba(255,255,255,.58)", border:"rgba(18,18,31,.10)", thumb:"rgba(255,255,255,.7)",
+  "input-bg":"rgba(255,255,255,.85)", "chip-bg":"rgba(255,255,255,.35)", "chip-on":"rgba(255,255,255,.75)",
+  "blob-opacity":".5", sale:"#B42318", stock:"#1F7A3A" };
+const DARK = { surface:"rgba(20,20,34,.55)", border:"rgba(255,255,255,.12)", thumb:"rgba(255,255,255,.06)",
+  "input-bg":"rgba(255,255,255,.08)", "chip-bg":"rgba(255,255,255,.04)", "chip-on":"rgba(255,255,255,.12)",
+  "blob-opacity":".38", sale:"#FF8A80", stock:"#5EE6A0" };
+const grad = (stops, deg = 100) => `linear-gradient(${deg}deg, ${stops.join(", ")})`;
+
+const SPECTRAL = [
+  { id: "prism", name: "Prism", note: "White glass, cyan→violet→pink→gold", base: LIGHT,
+    stops: ["#7CF5FF", "#A78BFA", "#FF8AD8", "#FFD36E"],
+    v: { bg:"#F7F7FB", ink:"#12121F", muted:"#50506A", primary:"#12121F", "on-primary":"#FFFFFF", "on-accent":"#12121F", "input-ink":"#12121F",
+         blob1:"#7CF5FF", blob2:"#FF8AD8", blob3:"#C4B5FD", star:"#7A3FD1" } },
+  { id: "aurora", name: "Aurora Night", note: "Dark glass, teal→indigo→rose→amber", base: DARK,
+    stops: ["#5EEAD4", "#818CF8", "#F472B6", "#FBBF24"],
+    v: { bg:"#0A0A12", ink:"#F2F2FA", muted:"#A9A9C2", primary:"#F2F2FA", "on-primary":"#0A0A12", "on-accent":"#0A0A12", "input-ink":"#F2F2FA",
+         blob1:"#4F46E5", blob2:"#DB2777", blob3:"#0EA5E9", star:"#FBBF24" } },
+  { id: "pearl", name: "Holo Pearl", note: "Pastel iridescent, indigo ink", base: LIGHT,
+    stops: ["#FBCFE8", "#C7D2FE", "#A7F3D0", "#FDE68A"],
+    v: { bg:"#FBF8FF", ink:"#1E1B4B", muted:"#55527A", primary:"#3730A3", "on-primary":"#FFFFFF", "on-accent":"#1E1B4B", "input-ink":"#1E1B4B",
+         blob1:"#F9A8D4", blob2:"#A5B4FC", blob3:"#6EE7B7", star:"#6D28D9" } },
+  { id: "noir", name: "Spectral Noir", note: "Black glass, full rainbow edge", base: DARK,
+    stops: ["#FF3D7F", "#FF9F1C", "#E8FF3D", "#3DFFB0", "#3DB8FF", "#9B5CFF"],
+    v: { bg:"#050507", ink:"#FFFFFF", muted:"#A1A1B5", primary:"#FFFFFF", "on-primary":"#050507", "on-accent":"#050507", "input-ink":"#FFFFFF",
+         blob1:"#9B5CFF", blob2:"#FF3D7F", blob3:"#3DB8FF", star:"#FFD23D" } },
+];
+
+const CLASSIC = [
+  { id: "aegean", name: "Aegean Gold", c: { bg:"#F4F6FB", ink:"#0B1B3A", muted:"#47557A", primary:"#0B1B3A", "on-primary":"#FFFFFF", accent:"#F2B33D", "on-accent":"#1A1300", blob1:"#9DB8FF", blob2:"#FFD98A", star:"#A86400" } },
+  { id: "marble", name: "Marble & Terracotta", c: { bg:"#F7F5F2", ink:"#15171A", muted:"#57524C", primary:"#15171A", "on-primary":"#FFFFFF", accent:"#C2461F", "on-accent":"#FFFFFF", blob1:"#F3C7B1", blob2:"#D7E3DA", star:"#A35A00" } },
+  { id: "laurel", name: "Laurel & Amber", c: { bg:"#F3F7F4", ink:"#0E2A20", muted:"#4B6157", primary:"#145A3E", "on-primary":"#FFFFFF", accent:"#FFB020", "on-accent":"#1C1300", blob1:"#A8E0C0", blob2:"#FFE1A1", star:"#9A5B00" } },
+  { id: "violet", name: "Midnight Volt", c: { bg:"#F5F3FF", ink:"#1A1033", muted:"#544A70", primary:"#2B1A5C", "on-primary":"#FFFFFF", accent:"#C6F432", "on-accent":"#1A1033", blob1:"#C4B5FD", blob2:"#E4FF9A", star:"#6A4BC4" } },
+  { id: "coral", name: "Graphite Coral", c: { bg:"#F6F6F4", ink:"#16181D", muted:"#545862", primary:"#16181D", "on-primary":"#FFFFFF", accent:"#FF5A4E", "on-accent":"#16181D", blob1:"#FFC2BC", blob2:"#BFD4FF", star:"#C2410C" } },
+  { id: "ocean", name: "Deep Teal & Sun", c: { bg:"#F1F7F7", ink:"#062E33", muted:"#3F5F63", primary:"#0B4D55", "on-primary":"#FFFFFF", accent:"#FFC53D", "on-accent":"#062E33", blob1:"#8EE3E0", blob2:"#FFE59A", star:"#9A6200" } },
+].map(s => ({ id: s.id, name: s.name, base: LIGHT, stops: [s.c.accent],
+  v: { ...s.c, "input-ink": s.c.ink, blob3: s.c.blob1 } }));
+
+const ALL = [...SPECTRAL, ...CLASSIC];
+
+const lum = h => { const c = h.match(/\w\w/g).map(x => parseInt(x,16)/255).map(x => x <= .03928 ? x/12.92 : ((x+.055)/1.055)**2.4); return .2126*c[0]+.7152*c[1]+.0722*c[2]; };
+const ratio = (a,b) => { const [x,y] = [lum(a),lum(b)].sort((p,q)=>q-p); return (x+.05)/(y+.05); };
+const minRatio = (fg, list) => Math.min(...list.map(b => ratio(fg, b)));
+
+function tokens(s) {
+  return { ...s.base, ...s.v,
+    "accent-bg": s.stops.length > 1 ? grad(s.stops) : s.stops[0],
+    spectrum: s.stops.length > 1 ? grad(s.stops, 90) : grad([s.v.primary, s.stops[0]], 90) };
+}
+
+function paint(s) {
+  const t = tokens(s);
+  for (const [k,val] of Object.entries(t)) document.documentElement.style.setProperty("--"+k, val);
+  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.id === s.id));
+  document.getElementById("cname").textContent = s.name;
+  const v = s.v;
+  const rows = [
+    ["Body text on background", v.ink, [v.bg], 4.5],
+    ["Secondary text on background", v.muted, [v.bg], 4.5],
+    ["Primary button label", v["on-primary"], [v.primary], 4.5],
+    ["Accent button label (lowest stop)", v["on-accent"], s.stops, 4.5],
+    ["Sale % on background", t.sale, [v.bg], 4.5],
+    ["In-stock text on background", t.stock, [v.bg], 4.5],
+    ["Star rating on background (UI)", v.star, [v.bg], 3],
+    ["Focus ring on background (UI)", v.ink, [v.bg], 3],
+  ];
+  document.getElementById("ctable").innerHTML = "<tr><th>Pair</th><th>Ratio</th><th>Result</th></tr>" + rows.map(([n,f,bs,min]) => {
+    const r = minRatio(f,bs); return `<tr><td>${n}</td><td>${r.toFixed(2)}:1</td><td class="${r>=min?"pass":"fail"}">${r>=min?"Pass":"Below "+min}</td></tr>`; }).join("");
+  try { localStorage.setItem("oc-scheme", s.id); } catch {}
+}
+
+// Cross-fade the whole page between schemes (gradients can't be CSS-transitioned).
+function apply(s) {
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (document.startViewTransition && !reduce) document.startViewTransition(() => paint(s));
+  else paint(s);
+}
+
+function chip(s, i) {
+  const b = document.createElement("button");
+  b.className = "chip"; b.dataset.id = s.id; b.type = "button";
+  const acc = s.stops.length > 1 ? grad(s.stops, 135) : s.stops[0];
+  b.innerHTML = `<span class="sw"><i style="background:${s.v.bg}"></i><i style="background:${s.v.primary}"></i><i style="background:${acc}"></i></span><span><b>${s.name}</b>${s.note ? `<small>${s.note}</small>` : ""}</span>`;
+  b.onclick = () => apply(s);
+  return b;
+}
+SPECTRAL.forEach((s,i) => document.getElementById("chips-spectral").appendChild(chip(s,i)));
+CLASSIC.forEach((s,i) => document.getElementById("chips-classic").appendChild(chip(s,i)));
+
+let start = SPECTRAL[0]; try { start = ALL.find(s => s.id === localStorage.getItem("oc-scheme")) || start; } catch {}
+if (!SPECTRAL.includes(start)) start = SPECTRAL[0];
+paint(start);
+</script>
+</body>
+</html>

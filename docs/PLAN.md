@@ -83,7 +83,27 @@
 7. P1 features if time allows.
 8. README, final deploy, and check it opens signed out.
 
-## Open decisions (owner)
-- **Hosting:** `vercel login` (preferred) or a temporary deployment.
-- **Payments:** Stripe test keys, or the simulated provider.
-- **Account recon:** the owner screenshots sign-up, checkout and orders on a real account.
+## Decisions (owner, 2026-10-07)
+- **Working rule:** follow this plan in order. The owner makes every decision; the agent asks first.
+- **Name:** Olympus Cart.
+- **Scope:** P0 stays as written above. P1 only if time allows.
+- **Catalog:** DummyJSON (about 194 products, about 24 categories, with images, rating, stock and discount).
+- **Payments:** Stripe **test mode** only (`pk_test_`/`sk_test_`); never live. The owner adds the keys to `.env` by the checkout step (Step 4.5). Until then the simulated provider stands in.
+- **Hosting:** Vercel, with the owner running `vercel login`. Postgres on Neon.
+- **Recon:** the agent captured the logged-out flows (`recon/`). The owner adds the signed-in flows in parallel.
+- **Visual direction:** clean modern retail with glass surfaces (translucent panels and backdrop blur over soft colour fields).
+  - Motion is smooth and fast: transitions of 150–450ms, no animations that delay loading, and everything off under `prefers-reduced-motion`.
+- **Colour scheme:** *Graphite Coral*, chosen from `docs/design/color-schemes.html`. Every pair passes WCAG AA.
+
+  | Token | Value | Use |
+  |---|---|---|
+  | `bg` | `#F6F6F4` | page background |
+  | `ink` | `#16181D` | body text, focus ring |
+  | `muted` | `#545862` | secondary text |
+  | `primary` / `on-primary` | `#16181D` / `#FFFFFF` | Buy now, cart, dark buttons |
+  | `accent` / `on-accent` | `#FF5A4E` / `#16181D` | Add to cart, search, main calls to action (5.77:1) |
+  | `star` | `#C2410C` | star ratings |
+  | `sale` | `#B42318` | discount % |
+  | `stock` | `#1F7A3A` | in stock |
+  | `blob1` / `blob2` | `#FFC2BC` / `#BFD4FF` | blurred colour fields behind the glass |
+  | `surface` / `border` | `rgba(255,255,255,.58)` / `rgba(18,18,31,.10)` | glass panels |

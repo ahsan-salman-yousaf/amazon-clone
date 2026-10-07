@@ -178,7 +178,8 @@ export async function getCartView(cartId: string | null): Promise<CartView> {
       thumbnail: products.thumbnail,
       priceCents: products.priceCents,
       listPriceCents: products.listPriceCents,
-      stock: sql<number>`coalesce(${productVariants.stock}, ${products.stock})`,
+      // A sized product without a size (a line from before sizes existed) can't be bought.
+      stock: sql<number>`case when ${products.sizeType} is not null and ${cartItems.variantId} is null then 0 else coalesce(${productVariants.stock}, ${products.stock}) end`,
       dispatchDaysMin: products.dispatchDaysMin,
       dispatchDaysMax: products.dispatchDaysMax,
       quantity: cartItems.quantity,

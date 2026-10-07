@@ -199,6 +199,8 @@ async function main() {
   await db.execute(sql`delete from product_variants v using products p where p.id = v.product_id and p.size_type is null`);
   // Keep products.stock equal to the sum of its sizes.
   await db.execute(sql`update products p set stock = s.total from (select product_id, sum(stock)::int total from product_variants group by product_id) s where s.product_id = p.id`);
+  // Cart lines added before a product had sizes can't be bought; drop them.
+  await db.execute(sql`delete from cart_items c using products p where p.id = c.product_id and p.size_type is not null and c.variant_id is null`);
   console.log(`Sized ${sized} products`);
 
   // Remove anything a previous seed loaded that is now excluded.

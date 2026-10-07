@@ -79,7 +79,7 @@ export function SizeGuide({ sizeType }: { sizeType: SizeType }) {
         <RulerIcon aria-hidden className="size-3.5" />
         Size guide
       </SheetTrigger>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
+      <SheetContent side="right" className="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-md">
         <SheetHeader className="pt-6">
           <SheetTitle className="text-lg font-semibold tracking-tight">{g.title}</SheetTitle>
           <SheetDescription>{g.note}</SheetDescription>

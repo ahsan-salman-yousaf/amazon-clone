@@ -77,7 +77,7 @@ export async function reserveOrder(input: OrderInput): Promise<{ ok: true; reser
       title: products.title,
       thumbnail: products.thumbnail,
       priceCents: products.priceCents,
-      stock: sql<number>`coalesce(${productVariants.stock}, ${products.stock})`.mapWith(Number),
+      stock: sql<number>`case when ${products.sizeType} is not null and ${cartItems.variantId} is null then 0 else coalesce(${productVariants.stock}, ${products.stock}) end`.mapWith(Number),
       dispatchDaysMin: products.dispatchDaysMin,
       dispatchDaysMax: products.dispatchDaysMax,
       quantity: cartItems.quantity,

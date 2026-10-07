@@ -152,3 +152,5 @@
   | `stock` | `#1F7A3A` | in stock |
   | `blob1` / `blob2` | `#FFC2BC` / `#BFD4FF` | blurred colour fields behind the glass |
   | `surface` / `border` | `rgba(255,255,255,.58)` / `rgba(18,18,31,.10)` | glass panels |
+- **Sizes:** shoes, clothing and watches only. Jewelry in the catalog is earrings only, so it stays unsized. Each product's real stock is split across its sizes in a fixed pattern (some edge sizes sell out). The card "+" opens a size picker, and a simple size-guide chart is on the product page.
+- **Shipping country:** USA only for now, shown in the header ("Delivering to USA"), the buy box and checkout.

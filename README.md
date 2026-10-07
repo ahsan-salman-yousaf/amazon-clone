@@ -31,7 +31,7 @@ For any card, use a future expiry date (e.g. `12/29`) and any 3-digit CVC. After
 | **Product page** | Sticky gallery (swipe or tap on mobile), price and savings, a **delivery date shown before the cart**, stock status, quantity, Add to cart / Buy now, specs, reviews and related products. All 183 product pages are pre-rendered. |
 | **Cart** | Guest carts are kept in the database and **merge into your account when you sign in**. Change quantity, remove (with **Undo**), save for later, see the subtotal and a free-delivery progress bar. |
 | **Auth** | Email and password on one screen, with Sign in / Create account tabs, a one-click demo account, and a return to where you were after signing in. |
-| **Checkout** | Three guided steps (address → delivery → payment) with an animated stepper. The address is saved to your account, delivery is Standard or Express with real dates, and tax is an estimated 8%. Errors are specific to what went wrong (e.g. "declined for insufficient funds"). |
+| **Checkout** | Ships within the **USA only** (shown in the header, on product pages and at checkout). Three guided steps (address → delivery → payment) with an animated stepper. The address is saved to your account, delivery is Standard or Express with real dates, and tax is an estimated 8%. Errors are specific to what went wrong (e.g. "declined for insufficient funds"). |
 | **Payments** | Stripe Payment Element in test mode. The server re-prices the cart, reserves stock in a transaction and creates the PaymentIntent with an idempotency key. The order is marked paid only after the server checks with Stripe, and a signed webhook records the result as well. Live keys are refused. |
 | **Orders** | Confirmation page, order details with a status timeline, and order history. The status moves on its own: shipped a few minutes after payment, then delivered on the estimated date. |
 
@@ -43,6 +43,7 @@ For any card, use a future expiry date (e.g. `12/29`) and any 3-digit CVC. After
 | **Written reviews** | Signed-in shoppers write one review per product (stars, headline, text); writing again edits it. Buyers get a **Verified purchase** badge. Star filters, and the rating updates when you post. |
 | **Wishlist** | A heart on every card and product page, plus a `/wishlist` page with Move to cart. |
 | **Account & addresses** | `/account`: edit your name; add, edit, delete (with confirmation) and set a default address. Checkout lets you pick a saved address. |
+| **Sizes** | Shoes (US men's and women's sizes), clothing (XS–XXL) and watches (band S/M/L) have sizes, each with its own stock. Sold-out sizes are crossed out, low sizes say "Only N left", and a **Size guide** chart opens from the product page. The "+" on a card opens a size picker. Cart, checkout, orders and returns all show the size. |
 | **Customers also viewed** | Built from real, anonymous per-browser view sessions. Until there is enough data, the rail is honestly labelled "More from {category}". |
 
 Accessibility is built in from the start:

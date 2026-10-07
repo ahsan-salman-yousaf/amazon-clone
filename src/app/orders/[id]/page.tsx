@@ -62,7 +62,8 @@ async function Order({ params, searchParams }: Pick<PageProps<"/orders/[id]">, "
           <div>
             <h1 className="text-xl font-semibold tracking-tight">Thank you, your order is placed</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Estimated delivery <b className="text-foreground">{range}</b>. This was a simulated payment, so nothing was charged.
+              Estimated delivery <b className="text-foreground">{range}</b>.{" "}
+              {payment?.provider === "stripe" ? "Paid in Stripe test mode, so no real money moved." : "This was a simulated payment, so nothing was charged."}
             </p>
           </div>
         </div>

@@ -1,0 +1,24 @@
+# capture-hook bookkeeping (dedupe state, locks, hook errors) — NOT the logs.
+# .agent-logs/ is intentionally committed and must never be ignored.
+.claude/agent-log-state/
+.claude/settings.local.json
+
+# env
+.env
+.env.*
+!.env.example
+
+# node / next
+node_modules/
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# testing
+playwright-report/
+test-results/
+coverage/
+
+.DS_Store

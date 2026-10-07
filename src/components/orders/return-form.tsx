@@ -69,7 +69,7 @@ export function ReturnForm({
                   disabled={disabled}
                   checked={on}
                   onChange={(e) => setPicked((p) => ({ ...p, [it.productId]: e.target.checked ? 1 : 0 }))}
-                  className="size-4 shrink-0 accent-primary"
+                  className="size-5 shrink-0 cursor-pointer accent-primary disabled:cursor-not-allowed"
                 />
                 <label htmlFor={`item-${it.productId}`} className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
                   <span className="relative size-14 shrink-0 overflow-hidden rounded-xl bg-white/80">
@@ -165,14 +165,14 @@ export function ReturnForm({
           </b>{" "}
           <span className="text-muted-foreground">to your original payment method, items plus tax. Delivery isn&apos;t refunded.</span>
         </p>
-        <div className="flex gap-2">
+        <div className="flex shrink-0 gap-2">
           <Link href={`/orders/${orderId}`} className={`inline-flex h-11 items-center rounded-full px-4 text-sm font-medium hover:bg-black/5 ${ring}`}>
             Cancel
           </Link>
           <button
             type="submit"
             disabled={pending}
-            className={`inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-60 ${ring}`}
+            className={`inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold whitespace-nowrap text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-60 ${ring}`}
           >
             {pending ? <LoaderCircleIcon aria-hidden className="size-4 animate-spin" /> : <PackageOpenIcon aria-hidden className="size-4" />}
             {pending ? "Requesting…" : "Request return"}

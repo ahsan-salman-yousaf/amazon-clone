@@ -2,7 +2,7 @@ import "server-only";
 
 import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { addresses, cartItems, carts, orderEvents, orderItems, orders, payments, products, type ShippingAddress } from "@/db/schema";
+import { addresses, cartItems, carts, orderEvents, orderItems, orders, payments, products, returns, type ShippingAddress } from "@/db/schema";
 import { withTransaction } from "@/db/tx";
 import type { AddressInput } from "@/lib/address";
 import { EXPRESS_TRANSIT_DAYS, STANDARD_TRANSIT_DAYS, addBusinessDays } from "@/lib/delivery";
@@ -252,7 +252,18 @@ export async function getOrder(userId: string, orderId: string) {
     .limit(1);
   if (!order) return null;
   const [items, events, [payment]] = await Promise.all([
-    db.select().from(orderItems).where(eq(orderItems.orderId, order.id)),
+    db
+      .select({
+        productId: orderItems.productId,
+        title: orderItems.title,
+        thumbnail: orderItems.thumbnail,
+        unitPriceCents: orderItems.unitPriceCents,
+        quantity: orderItems.quantity,
+        slug: products.slug,
+      })
+      .from(orderItems)
+      .innerJoin(products, eq(products.id, orderItems.productId))
+      .where(eq(orderItems.orderId, order.id)),
     db.select().from(orderEvents).where(eq(orderEvents.orderId, order.id)).orderBy(asc(orderEvents.at)),
     db
       .select({ provider: payments.provider, status: payments.status, cardBrand: payments.cardBrand, cardLast4: payments.cardLast4 })
@@ -285,5 +296,17 @@ export async function listOrders(userId: string) {
     .select({ orderId: orderItems.orderId, title: orderItems.title, thumbnail: orderItems.thumbnail, quantity: orderItems.quantity })
     .from(orderItems)
     .where(inArray(orderItems.orderId, rows.map((r) => r.id)));
-  return rows.map((r) => ({ ...r, items: items.filter((i) => i.orderId === r.id) }));
+  const rets = await db
+    .select({ orderId: returns.orderId, status: returns.status, refundCents: returns.refundCents })
+    .from(returns)
+    .where(and(inArray(returns.orderId, rows.map((r) => r.id)), sql`${returns.status} <> 'cancelled'`));
+  return rows.map((r) => {
+    const mine = rets.filter((x) => x.orderId === r.id);
+    const returnStatus = !mine.length
+      ? null
+      : mine.some((x) => x.status === "requested")
+        ? ("in_progress" as const)
+        : { refundedCents: mine.reduce((t, x) => t + x.refundCents, 0) };
+    return { ...r, items: items.filter((i) => i.orderId === r.id), returnStatus };
+  });
 }

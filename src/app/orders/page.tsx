@@ -50,7 +50,17 @@ async function Orders() {
               <p>
                 <span className="font-medium">{date(o.createdAt)}</span> · <span className="font-mono text-muted-foreground">{o.number}</span>
               </p>
-              <StatusPill status={o.status} />
+              <span className="flex flex-wrap items-center gap-1.5">
+                {o.returnStatus === "in_progress" && (
+                  <span className="inline-flex h-6 items-center rounded-full bg-black/5 px-2.5 text-xs font-semibold">Return in progress</span>
+                )}
+                {o.returnStatus && o.returnStatus !== "in_progress" && (
+                  <span className="inline-flex h-6 items-center rounded-full bg-stock/10 px-2.5 text-xs font-semibold text-stock">
+                    Refunded {formatMoney(o.returnStatus.refundedCents)}
+                  </span>
+                )}
+                <StatusPill status={o.status} />
+              </span>
             </div>
             <div className="mt-4 flex items-center gap-3">
               <div className="flex -space-x-3">

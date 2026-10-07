@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { CheckCircle2Icon, CircleIcon, PackageOpenIcon, RotateCcwIcon, XCircleIcon } from "lucide-react";
 import { currentUserId } from "@/auth";
+import { LocalTime } from "@/components/local-time";
 import { StatusPill } from "@/components/orders/status";
 import { formatMoney } from "@/lib/format";
 import { getOrder } from "@/lib/orders";
@@ -14,7 +15,6 @@ import { cn } from "@/lib/utils";
 export const metadata: Metadata = { title: "Order details" };
 
 const day = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-const stamp = (d: Date) => d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "UTC" }) + " UTC";
 
 export default function OrderPage({ params, searchParams }: PageProps<"/orders/[id]">) {
   return (
@@ -104,7 +104,11 @@ async function Order({ params, searchParams }: Pick<PageProps<"/orders/[id]">, "
                       {s.label}
                       <span className="sr-only">{s.failed ? " (failed)" : s.done ? " (done)" : " (upcoming)"}</span>
                     </p>
-                    {s.at && <p className="text-xs text-muted-foreground">{stamp(s.at)}</p>}
+                    {s.at && (
+                      <p className="text-xs text-muted-foreground">
+                        <LocalTime iso={s.at.toISOString()} />
+                      </p>
+                    )}
                   </div>
                 </li>
               ))}
@@ -146,9 +150,14 @@ async function Order({ params, searchParams }: Pick<PageProps<"/orders/[id]">, "
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {RETURN_REASONS[r.reason]} · requested {stamp(r.createdAt)}
-                      {r.refundedAt &&
-                        ` · refunded ${stamp(r.refundedAt)}${payment?.cardLast4 ? ` to ${payment.cardBrand ?? "card"} ending ${payment.cardLast4}` : ""}`}
+                      {RETURN_REASONS[r.reason]} · requested <LocalTime iso={r.createdAt.toISOString()} />
+                      {r.refundedAt && (
+                        <>
+                          {" "}
+                          · refunded <LocalTime iso={r.refundedAt.toISOString()} />
+                          {payment?.cardLast4 && ` to ${payment.cardBrand ?? "card"} ending ${payment.cardLast4}`}
+                        </>
+                      )}
                     </p>
                   </li>
                 ))}
@@ -177,9 +186,21 @@ async function Order({ params, searchParams }: Pick<PageProps<"/orders/[id]">, "
                     <Image src={it.thumbnail} alt="" fill sizes="64px" className="object-contain p-1.5" />
                   </span>
                   <div className="min-w-0 flex-1 text-sm">
-                    <p className="line-clamp-2 font-medium">{it.title}</p>
+                    <Link href={`/p/${it.slug}`} className="line-clamp-2 rounded-md font-medium hover:underline focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none">
+                      {it.title}
+                    </Link>
                     <p className="text-muted-foreground">
                       Qty {it.quantity} · {formatMoney(it.unitPriceCents)} each
+                    </p>
+                    <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs font-medium">
+                      {order.status === "delivered" && (
+                        <Link href={`/p/${it.slug}#write-review`} className="text-foreground/80 underline-offset-2 hover:text-foreground hover:underline">
+                          Write a review<span className="sr-only"> of {it.title}</span>
+                        </Link>
+                      )}
+                      <Link href={`/p/${it.slug}`} className="text-foreground/80 underline-offset-2 hover:text-foreground hover:underline">
+                        Buy again<span className="sr-only">: {it.title}</span>
+                      </Link>
                     </p>
                   </div>
                   <p className="text-sm font-semibold tabular-nums">{formatMoney(it.unitPriceCents * it.quantity)}</p>

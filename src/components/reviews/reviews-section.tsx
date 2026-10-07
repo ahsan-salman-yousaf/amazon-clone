@@ -172,6 +172,15 @@ export function ReviewsSection({
 }) {
   const [filter, setFilter] = useState<number | null>(null);
   const [writing, setWriting] = useState(false);
+  // "Write a review" links from order details land here with #write-review.
+  useEffect(() => {
+    if (window.location.hash !== "#write-review") return;
+    const t = setTimeout(() => {
+      setWriting(true);
+      document.getElementById("reviews")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
   const [thanks, setThanks] = useState<string | null>(null);
   // The author's own review shows at once; the cached page catches up in the background.
   const [mine, setMine] = useState<ReviewView | null>(null);

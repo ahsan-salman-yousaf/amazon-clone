@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDownIcon, LogOutIcon, PackageIcon, UserIcon } from "lucide-react";
+import { ChevronDownIcon, HeartIcon, LogOutIcon, PackageIcon, UserIcon } from "lucide-react";
 import { signOutAction } from "@/app/signin/actions";
 import {
   DropdownMenu,
@@ -28,8 +28,18 @@ export function AccountDropdown({ firstName, email }: { firstName: string; email
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
+          <Link href="/account">
+            <UserIcon aria-hidden /> Your account
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
           <Link href="/orders">
             <PackageIcon aria-hidden /> Your orders
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/wishlist">
+            <HeartIcon aria-hidden /> Your wishlist
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

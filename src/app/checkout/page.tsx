@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { currentUserId } from "@/auth";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
 import { getCartView, readCartId } from "@/lib/cart";
+import { listAddresses } from "@/lib/address-book";
 import { getDefaultAddress } from "@/lib/orders";
 import { stripeEnabled } from "@/lib/payments/stripe";
 
@@ -24,7 +25,7 @@ async function Checkout() {
   // Checkout requires sign-in, as on Amazon (PLAN.md P0).
   const userId = await currentUserId();
   if (!userId) redirect("/signin?next=/checkout");
-  const [cart, address] = await Promise.all([readCartId().then(getCartView), getDefaultAddress(userId)]);
+  const [cart, address, saved] = await Promise.all([readCartId().then(getCartView), getDefaultAddress(userId), listAddresses(userId)]);
   const buyable = cart.lines.filter((l) => l.stock > 0).map((l) => ({ ...l, quantity: Math.min(l.quantity, l.stock) }));
   if (!buyable.length) redirect("/cart");
 
@@ -34,6 +35,7 @@ async function Checkout() {
       subtotalCents={cart.subtotalCents}
       dispatch={{ min: Math.max(...buyable.map((l) => l.dispatchDaysMin)), max: Math.max(...buyable.map((l) => l.dispatchDaysMax)) }}
       address={address}
+      savedAddresses={saved.map(({ id, fullName, line1, line2, city, state, postalCode, phone }) => ({ id, fullName, line1, line2, city, state, postalCode, phone }))}
       idempotencyKey={crypto.randomUUID()}
       stripePublishableKey={stripeEnabled ? process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY : undefined}
     />

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { AlertCircleIcon, LoaderCircleIcon, PackageOpenIcon } from "lucide-react";
 import { requestReturnAction, type ReturnFormState } from "@/app/orders/[id]/return/actions";
 import { formatMoney } from "@/lib/format";
@@ -41,7 +41,15 @@ export function ReturnForm({
   const err = (f: NonNullable<ReturnFormState>["field"]) => (state && state.field === f ? state.error : undefined);
 
   return (
-    <form action={action} className="flex flex-col gap-6">
+    <form
+      // Submitted manually so an error doesn't clear the note.
+      onSubmit={(e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        startTransition(() => action(fd));
+      }}
+      className="flex flex-col gap-6"
+    >
       <input type="hidden" name="orderId" value={orderId} />
 
       <fieldset className="glass rounded-3xl p-5" aria-describedby={err("items") ? "items-err" : undefined}>

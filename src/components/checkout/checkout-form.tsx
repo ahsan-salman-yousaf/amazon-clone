@@ -40,6 +40,8 @@ type CheckoutProps = {
   subtotalCents: number;
   dispatch: { min: number; max: number };
   address: SavedAddress;
+  /** The address book, default first; shown as quick picks on step 1. */
+  savedAddresses?: (NonNullable<SavedAddress> & { id: string })[];
   idempotencyKey: string;
   /** Stripe test-mode publishable key; absent means the simulated provider. */
   stripePublishableKey?: string;
@@ -325,6 +327,7 @@ function CheckoutSteps({
   subtotalCents,
   dispatch,
   address,
+  savedAddresses = [],
   idempotencyKey,
   submit,
   renderPayment,
@@ -348,6 +351,10 @@ function CheckoutSteps({
   const [pending, startTransition] = useTransition();
   const [speed, setSpeed] = useState<ShippingSpeed>("standard");
   const [recap, setRecap] = useState<string[]>([]);
+  const [pickedId, setPickedId] = useState<string>(savedAddresses[0]?.id ?? "new");
+  const picked = savedAddresses.find((a) => a.id === pickedId);
+  // The fields below take the picked address as their defaults; remounting them (key) swaps the values in.
+  const fill = pickedId === "new" ? (savedAddresses.length ? null : address) : picked ?? address;
 
   const totals = orderTotals(subtotalCents, speed);
   useEffect(() => {
@@ -453,11 +460,42 @@ function CheckoutSteps({
             {/* Every step stays mounted (the card form is ready early and nothing typed is lost); only the active
                 one shows. Un-hiding an element restarts its CSS animation, so each step animates in on arrival. */}
             <div hidden={step !== 1} className={panelClass}>
-              <div className="grid gap-4 sm:grid-cols-6">
-                <Field className="sm:col-span-6" label="Full name" name="fullName" autoComplete="shipping name" defaultValue={address?.fullName} error={fieldErrors.fullName} />
-                <Field className="sm:col-span-6" label="Street address" name="line1" autoComplete="shipping address-line1" defaultValue={address?.line1} error={fieldErrors.line1} />
-                <Field className="sm:col-span-6" label="Apartment, suite, etc." name="line2" optional autoComplete="shipping address-line2" defaultValue={address?.line2 ?? ""} />
-                <Field className="sm:col-span-2" label="City" name="city" autoComplete="shipping address-level2" defaultValue={address?.city} error={fieldErrors.city} />
+              {savedAddresses.length > 0 && (
+                <fieldset className="mb-5">
+                  <legend className="mb-2 text-sm font-medium">Ship to a saved address</legend>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {[...savedAddresses.map((a) => ({ id: a.id, title: a.fullName, sub: `${a.line1}, ${a.city}, ${a.state} ${a.postalCode}` })), { id: "new", title: "A new address", sub: "Enter it below" }].map((o) => (
+                      <label
+                        key={o.id}
+                        className={cn(
+                          "flex cursor-pointer items-start gap-3 rounded-2xl border bg-white/70 p-3.5 text-sm transition-[background-color,border-color] duration-200 has-focus-visible:ring-3 has-focus-visible:ring-ring/40",
+                          pickedId === o.id ? "border-primary bg-white" : "border-input hover:bg-white",
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="addressChoice"
+                          checked={pickedId === o.id}
+                          onChange={() => {
+                            setPickedId(o.id);
+                            setFieldErrors({});
+                          }}
+                          className="mt-0.5 size-4 accent-primary focus-visible:outline-none"
+                        />
+                        <span className="min-w-0">
+                          <span className="block font-medium">{o.title}</span>
+                          <span className="block truncate text-muted-foreground">{o.sub}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
+              <div key={pickedId} className="grid gap-4 sm:grid-cols-6">
+                <Field className="sm:col-span-6" label="Full name" name="fullName" autoComplete="shipping name" defaultValue={fill?.fullName} error={fieldErrors.fullName} />
+                <Field className="sm:col-span-6" label="Street address" name="line1" autoComplete="shipping address-line1" defaultValue={fill?.line1} error={fieldErrors.line1} />
+                <Field className="sm:col-span-6" label="Apartment, suite, etc." name="line2" optional autoComplete="shipping address-line2" defaultValue={fill?.line2 ?? ""} />
+                <Field className="sm:col-span-2" label="City" name="city" autoComplete="shipping address-level2" defaultValue={fill?.city} error={fieldErrors.city} />
                 <div className="flex flex-col gap-1.5 sm:col-span-2">
                   <label htmlFor="state" className="text-sm font-medium">
                     State
@@ -467,7 +505,7 @@ function CheckoutSteps({
                     name="state"
                     required
                     autoComplete="shipping address-level1"
-                    defaultValue={address?.state ?? ""}
+                    defaultValue={fill?.state ?? ""}
                     aria-invalid={!!fieldErrors.state}
                     aria-describedby={fieldErrors.state ? "state-e" : undefined}
                     className={inputClass(fieldErrors.state)}
@@ -483,8 +521,8 @@ function CheckoutSteps({
                   </select>
                   {fieldErrors.state && <FieldError id="state-e">{fieldErrors.state}</FieldError>}
                 </div>
-                <Field className="sm:col-span-2" label="ZIP code" name="postalCode" inputMode="numeric" autoComplete="shipping postal-code" defaultValue={address?.postalCode} error={fieldErrors.postalCode} />
-                <Field className="sm:col-span-6" label="Phone" name="phone" optional type="tel" autoComplete="shipping tel" defaultValue={address?.phone ?? ""} error={fieldErrors.phone} />
+                <Field className="sm:col-span-2" label="ZIP code" name="postalCode" inputMode="numeric" autoComplete="shipping postal-code" defaultValue={fill?.postalCode} error={fieldErrors.postalCode} />
+                <Field className="sm:col-span-6" label="Phone" name="phone" optional type="tel" autoComplete="shipping tel" defaultValue={fill?.phone ?? ""} error={fieldErrors.phone} />
               </div>
               <p className="mt-3 text-xs text-muted-foreground">United States only. We&apos;ll save this address for next time.</p>
             </div>

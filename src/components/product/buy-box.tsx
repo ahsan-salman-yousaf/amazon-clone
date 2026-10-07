@@ -2,6 +2,7 @@ import { RotateCcwIcon, ShieldCheckIcon, StoreIcon, TruckIcon } from "lucide-rea
 import { DeliveryDate } from "@/components/delivery-date";
 import { DiscountBadge } from "@/components/discount-badge";
 import { AddToCartForm } from "@/components/product/add-to-cart-form";
+import { WishlistButton } from "@/components/wishlist/wishlist-button";
 import { EXPRESS_TRANSIT_DAYS } from "@/lib/delivery";
 import { discountPercent, formatMoney } from "@/lib/format";
 import { EXPRESS_SHIPPING_CENTS, FREE_SHIPPING_THRESHOLD_CENTS } from "@/lib/pricing";
@@ -61,6 +62,7 @@ export function BuyBox({ product: p }: { product: BuyBoxProduct }) {
 
       <StockStatus stock={p.stock} />
       <AddToCartForm productId={p.id} maxQuantity={Math.min(10, p.stock)} disabled={p.stock <= 0} />
+      <WishlistButton productId={p.id} title={p.title} variant="page" />
 
       <ul className="flex flex-col gap-1.5 border-t border-border pt-4 text-xs text-muted-foreground">
         {p.returnPolicy && (

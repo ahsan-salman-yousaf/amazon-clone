@@ -4,6 +4,7 @@ import { StarIcon } from "lucide-react";
 import { QuickAdd } from "@/components/cart/quick-add";
 import { DeliveryDate } from "@/components/delivery-date";
 import { DiscountBadge } from "@/components/discount-badge";
+import { WishlistButton } from "@/components/wishlist/wishlist-button";
 import type { ProductCardData } from "@/lib/catalog";
 import { discountPercent, formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -47,11 +48,12 @@ export function ProductCard({ product: p, className }: { product: ProductCardDat
         </div>
       </Link>
       {/* Same square as the image, so the "+" sits in its corner without nesting a button in the link. */}
-      {p.stock > 0 && (
-        <div className="pointer-events-none absolute inset-x-0 top-0 aspect-square">
-          <QuickAdd productId={p.id} title={p.title} className="pointer-events-auto absolute right-2.5 bottom-2.5" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 aspect-square">
+        <div className="pointer-events-auto absolute top-2 right-2">
+          <WishlistButton productId={p.id} title={p.title} />
         </div>
-      )}
+        {p.stock > 0 && <QuickAdd productId={p.id} title={p.title} className="pointer-events-auto absolute right-2.5 bottom-2.5" />}
+      </div>
     </div>
   );
 }

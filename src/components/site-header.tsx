@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { MenuIcon, SearchIcon, ShoppingCartIcon, UserIcon } from "lucide-react";
 import { DepartmentDrawer } from "@/components/department-drawer";
 import { HeaderSearch } from "@/components/header-search";
@@ -35,7 +35,7 @@ function useHeaderSearchVisible() {
   return !isHome || heroHidden;
 }
 
-export function SiteHeader({ departments }: { departments: DepartmentGroup[] }) {
+export function SiteHeader({ departments, cartBadge }: { departments: DepartmentGroup[]; cartBadge?: ReactNode }) {
   const showSearch = useHeaderSearchVisible();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -106,10 +106,11 @@ export function SiteHeader({ departments }: { departments: DepartmentGroup[] }) 
           </Link>
           <Link
             href="/cart"
-            aria-label="Cart"
-            className="grid size-10 place-items-center rounded-xl transition-colors hover:bg-black/5 focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"
+            className="relative grid size-10 place-items-center rounded-xl transition-colors hover:bg-black/5 focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"
           >
             <ShoppingCartIcon aria-hidden className="size-5" />
+            <span className="sr-only">Cart</span>
+            {cartBadge}
           </Link>
         </nav>
       </div>

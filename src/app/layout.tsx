@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
+import { CartBadge } from "@/components/cart/cart-badge";
 import { SiteHeader } from "@/components/site-header";
 import { getCategories } from "@/lib/catalog";
 import { groupDepartments } from "@/lib/departments";
@@ -41,7 +43,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <p className="bg-primary px-4 py-1.5 text-center text-xs text-primary-foreground">
           Demo project, not affiliated with Amazon. No real orders or payments: checkout runs in Stripe test mode.
         </p>
-        <SiteHeader departments={departments} />
+        <SiteHeader
+          departments={departments}
+          cartBadge={
+            <Suspense>
+              <CartBadge />
+            </Suspense>
+          }
+        />
         {children}
       </body>
     </html>

@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { addItem, cartCount, getOrCreateCartId } from "@/lib/cart";
+import { addItem, cartCount, getOrCreateCartId, readCartId, removeItem, setQuantity, setSavedForLater } from "@/lib/cart";
 
 export type AddToCartState = { ok: boolean; message: string; count?: number } | null;
 
@@ -31,4 +31,26 @@ export async function buyNow(formData: FormData) {
   await addItem(cartId, input.productId, input.quantity);
   // Checkout requires sign-in (as on Amazon); the cart page routes there.
   redirect("/cart");
+}
+
+/** Cart page edits. Each works on the cookie's cart only, so ids can't reach other carts. */
+async function withLine(formData: FormData, fn: (cartId: string, productId: number) => Promise<void>) {
+  const input = parse(formData);
+  const cartId = await readCartId();
+  if (!input || !cartId) return;
+  await fn(cartId, input.productId);
+  refresh();
+}
+
+export async function updateQuantity(formData: FormData) {
+  await withLine(formData, (c, p) => setQuantity(c, p, Number(formData.get("quantity"))));
+}
+export async function removeFromCart(formData: FormData) {
+  await withLine(formData, removeItem);
+}
+export async function saveForLater(formData: FormData) {
+  await withLine(formData, (c, p) => setSavedForLater(c, p, true));
+}
+export async function moveToCart(formData: FormData) {
+  await withLine(formData, (c, p) => setSavedForLater(c, p, false));
 }

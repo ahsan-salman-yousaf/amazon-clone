@@ -68,3 +68,74 @@ export async function cartCount(cartId: string): Promise<number> {
     .where(and(eq(cartItems.cartId, cartId), eq(cartItems.savedForLater, false)));
   return row?.n ?? 0;
 }
+
+export type CartLine = {
+  productId: number;
+  slug: string;
+  title: string;
+  thumbnail: string;
+  priceCents: number;
+  listPriceCents: number;
+  stock: number;
+  quantity: number;
+  savedForLater: boolean;
+};
+
+export type CartView = {
+  id: string | null;
+  lines: CartLine[];
+  saved: CartLine[];
+  /** Items that can be bought now (in stock), with quantities clamped to stock. */
+  itemCount: number;
+  subtotalCents: number;
+};
+
+const EMPTY: CartView = { id: null, lines: [], saved: [], itemCount: 0, subtotalCents: 0 };
+
+/** Live prices and stock come from products, never from what the cart stored. */
+export async function getCartView(cartId: string | null): Promise<CartView> {
+  if (!cartId) return EMPTY;
+  const rows = await db
+    .select({
+      productId: products.id,
+      slug: products.slug,
+      title: products.title,
+      thumbnail: products.thumbnail,
+      priceCents: products.priceCents,
+      listPriceCents: products.listPriceCents,
+      stock: products.stock,
+      quantity: cartItems.quantity,
+      savedForLater: cartItems.savedForLater,
+    })
+    .from(cartItems)
+    .innerJoin(products, eq(products.id, cartItems.productId))
+    .where(eq(cartItems.cartId, cartId))
+    .orderBy(sql`${cartItems.addedAt} desc`);
+
+  const lines = rows.filter((r) => !r.savedForLater);
+  const buyable = lines.filter((l) => l.stock > 0);
+  return {
+    id: cartId,
+    lines,
+    saved: rows.filter((r) => r.savedForLater),
+    itemCount: buyable.reduce((n, l) => n + Math.min(l.quantity, l.stock), 0),
+    subtotalCents: buyable.reduce((s, l) => s + l.priceCents * Math.min(l.quantity, l.stock), 0),
+  };
+}
+
+const line = (cartId: string, productId: number) => and(eq(cartItems.cartId, cartId), eq(cartItems.productId, productId));
+
+export async function setQuantity(cartId: string, productId: number, quantity: number) {
+  const qty = Math.floor(quantity);
+  if (qty <= 0) return removeItem(cartId, productId);
+  const cap = sql`(select least(${products.stock}, ${MAX_PER_LINE}) from ${products} where ${products.id} = ${productId})`;
+  await db.update(cartItems).set({ quantity: sql`greatest(1, least(${qty}, ${cap}))` }).where(line(cartId, productId));
+}
+
+export async function removeItem(cartId: string, productId: number) {
+  await db.delete(cartItems).where(line(cartId, productId));
+}
+
+export async function setSavedForLater(cartId: string, productId: number, saved: boolean) {
+  await db.update(cartItems).set({ savedForLater: saved }).where(line(cartId, productId));
+}

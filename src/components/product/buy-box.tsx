@@ -3,6 +3,7 @@ import { DeliveryDate } from "@/components/delivery-date";
 import { AddToCartForm } from "@/components/product/add-to-cart-form";
 import { EXPRESS_TRANSIT_DAYS } from "@/lib/delivery";
 import { discountPercent, formatMoney } from "@/lib/format";
+import { EXPRESS_SHIPPING_CENTS, FREE_SHIPPING_THRESHOLD_CENTS } from "@/lib/pricing";
 
 export type BuyBoxProduct = {
   id: number;
@@ -49,8 +50,9 @@ export function BuyBox({ product: p }: { product: BuyBoxProduct }) {
             </b>
             <br />
             <span className="text-muted-foreground">
-              Free standard delivery · or{" "}
-              <DeliveryDate dispatchDaysMin={p.dispatchDaysMin} dispatchDaysMax={p.dispatchDaysMax} transitDays={EXPRESS_TRANSIT_DAYS} prefix="" /> with Express
+              Free delivery on orders over {formatMoney(FREE_SHIPPING_THRESHOLD_CENTS)} · or{" "}
+              <DeliveryDate dispatchDaysMin={p.dispatchDaysMin} dispatchDaysMax={p.dispatchDaysMax} transitDays={EXPRESS_TRANSIT_DAYS} prefix="" /> with
+              Express ({formatMoney(EXPRESS_SHIPPING_CENTS)})
             </span>
           </p>
         </div>

@@ -110,6 +110,8 @@
 - **Product page:** option B.
   - **Layout:** a large sticky gallery on the left, with details and the buy box on the right. Specs, reviews and related products run full width below.
   - **Mobile:** a bottom bar fixed to the screen, with price and Add to cart.
+- **Shipping:** standard delivery (2 business days in transit) is free on orders of $35 or more, and $5.99 below that. Express (1 business day in transit) is $9.99 flat. The cart shows free-delivery progress.
+- **Cart extras in P0:** Save for later only. Per-item delivery dates in the cart and a recently viewed rail are left out.
 - **Colour scheme:** *Graphite Coral*, chosen from `docs/design/color-schemes.html`. Every pair passes WCAG AA.
 
   | Token | Value | Use |

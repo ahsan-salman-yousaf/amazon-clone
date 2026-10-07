@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { MenuIcon, SearchIcon, ShoppingCartIcon } from "lucide-react";
 import { DepartmentDrawer } from "@/components/department-drawer";
@@ -66,10 +66,14 @@ function HeaderBar({ departments, cartBadge, account, isHome }: HeaderProps & { 
     return () => window.removeEventListener(OPEN_DEPARTMENTS_EVENT, open);
   }, []);
 
-  const jumpToHero = () => {
+  const router = useRouter();
+  // Mobile has no room for a header search box: on home the icon jumps to the
+  // hero search; elsewhere it opens the search page, which has its own box.
+  const openSearch = () => {
     const form = document.getElementById(HERO_SEARCH_ID);
-    form?.scrollIntoView({ behavior: "smooth", block: "center" });
-    form?.querySelector("input")?.focus({ preventScroll: true });
+    if (!form) return router.push("/search?focus=1");
+    form.scrollIntoView({ behavior: "smooth", block: "center" });
+    form.querySelector("input")?.focus({ preventScroll: true });
   };
 
   const reveal = cn(
@@ -107,7 +111,7 @@ function HeaderBar({ departments, cartBadge, account, isHome }: HeaderProps & { 
         <nav aria-label="Account" className="ml-auto flex items-center gap-1 md:ml-0">
           <button
             type="button"
-            onClick={jumpToHero}
+            onClick={openSearch}
             aria-label="Search"
             inert={!showSearch}
             className={cn(

@@ -5,15 +5,11 @@ import { redirect } from "next/navigation";
 import { currentUserId } from "@/auth";
 import { addressSchema, type AddressField } from "@/lib/address";
 import { readCartId } from "@/lib/cart";
+import type { CheckoutState } from "@/lib/checkout-errors";
 import { placeOrder } from "@/lib/orders";
 import { simulatedProvider, validateCard } from "@/lib/payments/simulated";
 
-export type CheckoutState = {
-  error?: string;
-  fieldErrors?: Partial<Record<AddressField | "card", string>>;
-  /** A fresh key after a failed attempt, so the retry is a new payment. */
-  idempotencyKey?: string;
-} | null;
+export type { CheckoutState } from "@/lib/checkout-errors";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "");
@@ -36,12 +32,13 @@ export async function placeOrderAction(_prev: CheckoutState, fd: FormData): Prom
   const card = { number: str(fd, "cardNumber"), expiry: str(fd, "cardExpiry"), cvc: str(fd, "cardCvc"), name: str(fd, "cardName") };
   const cardError = validateCard(card);
 
-  if (!address.success || cardError) {
+  if (!address.success) {
     const fieldErrors: NonNullable<CheckoutState>["fieldErrors"] = {};
-    if (!address.success) for (const i of address.error.issues) fieldErrors[i.path[0] as AddressField] ??= i.message;
-    if (cardError) fieldErrors.card = cardError;
-    return { error: "Please fix the highlighted fields.", fieldErrors };
+    for (const i of address.error.issues) fieldErrors[i.path[0] as AddressField] ??= i.message;
+    const first = Object.values(fieldErrors)[0];
+    return { code: "address", error: `Check your shipping address: ${first}`, fieldErrors };
   }
+  if (cardError) return { code: "card", error: cardError, fieldErrors: { card: cardError } };
 
   const key = str(fd, "idempotencyKey");
   const result = await placeOrder({
@@ -58,5 +55,10 @@ export async function placeOrderAction(_prev: CheckoutState, fd: FormData): Prom
     refresh(); // the header cart count lives in the shared layout
     redirect(`/orders/${result.orderId}?placed=1`);
   }
-  return { error: result.message, fieldErrors: { card: result.message }, idempotencyKey: crypto.randomUUID() };
+  return {
+    code: result.code,
+    error: result.message,
+    fieldErrors: result.code === "card" ? { card: result.message } : undefined,
+    idempotencyKey: crypto.randomUUID(),
+  };
 }

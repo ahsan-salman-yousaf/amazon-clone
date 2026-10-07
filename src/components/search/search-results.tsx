@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { ProductCard } from "@/components/product-card";
+import { SearchForm } from "@/components/search-form";
 import { FilterGroups } from "@/components/search/filters";
 import { PendingRegion, SearchStateProvider } from "@/components/search/search-state";
 import { ActivePills, MobileFilters, SortSelect, type Pill } from "@/components/search/toolbar";
 import { FAST_DISPATCH_DAYS, PAGE_SIZE, PRICE_BANDS, SORTS, parseFilters, searchProducts } from "@/lib/search";
 
 type RawParams = Record<string, string | string[] | undefined>;
+const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 /**
  * Search results and category pages share this view (owner decision: option A,
@@ -43,6 +45,8 @@ export async function SearchResults({
 
   return (
     <SearchStateProvider>
+      {/* The header hides its search box on small screens, so results pages carry their own. */}
+      <SearchForm id="page-search" key={f.q} defaultValue={f.q} autoFocus={one(raw.focus) === "1" && !f.q} className="mb-6 md:hidden" />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground" aria-live="polite">

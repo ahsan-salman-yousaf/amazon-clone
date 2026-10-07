@@ -50,7 +50,8 @@ async function saveDefaultAddress(userId: string, a: AddressInput) {
   }
 }
 
-export type PlaceOrderResult = { ok: true; orderId: string } | { ok: false; message: string; orderId?: string };
+export type OrderFailure = { ok: false; code: "stock" | "cart_empty" | "card"; message: string; orderId?: string };
+export type PlaceOrderResult = { ok: true; orderId: string } | OrderFailure;
 
 type OrderInput = {
   userId: string;
@@ -68,7 +69,7 @@ export type Reservation = { orderId: string; paymentId: string; totalCents: numb
  * and stock: the cart is re-read and re-priced here, never trusted from the
  * browser. Stock is taken and the order created in one transaction.
  */
-export async function reserveOrder(input: OrderInput): Promise<{ ok: true; reservation: Reservation } | { ok: false; message: string }> {
+export async function reserveOrder(input: OrderInput): Promise<{ ok: true; reservation: Reservation } | OrderFailure> {
   const lines = await db
     .select({
       productId: products.id,
@@ -85,7 +86,11 @@ export async function reserveOrder(input: OrderInput): Promise<{ ok: true; reser
     .where(and(eq(cartItems.cartId, input.cartId), eq(cartItems.savedForLater, false)));
 
   const buyable = lines.filter((l) => l.stock > 0).map((l) => ({ ...l, quantity: Math.min(l.quantity, l.stock) }));
-  if (!buyable.length) return { ok: false, message: "Your cart is empty or its items are out of stock." };
+  if (!lines.length) return { ok: false, code: "cart_empty", message: "Your cart is empty. Add something before checking out." };
+  if (!buyable.length) {
+    const names = lines.map((l) => l.title).join(", ");
+    return { ok: false, code: "stock", message: `${names} ${lines.length === 1 ? "is" : "are"} now out of stock.` };
+  }
 
   const subtotal = buyable.reduce((s, l) => s + l.priceCents * l.quantity, 0);
   const totals = orderTotals(subtotal, input.speed);
@@ -137,7 +142,9 @@ export async function reserveOrder(input: OrderInput): Promise<{ ok: true; reser
     });
     return { ok: true, reservation };
   } catch (e) {
-    if (e instanceof OutOfStock) return { ok: false, message: `Sorry, ${e.title} just sold out. Please review your cart.` };
+    if (e instanceof OutOfStock) {
+      return { ok: false, code: "stock", message: `${e.title} sold out while you were checking out. Remove it from your cart to continue.` };
+    }
     throw e;
   }
 }
@@ -213,7 +220,7 @@ export async function placeOrder(input: Omit<OrderInput, "provider"> & { card: C
   if (prior) {
     return prior.status === "succeeded"
       ? { ok: true, orderId: prior.orderId }
-      : { ok: false, message: "That payment didn't go through. Please review your card and try again.", orderId: prior.orderId };
+      : { ok: false, code: "card", message: "That payment attempt already failed. Check your card details and try again.", orderId: prior.orderId };
   }
   const reserved = await reserveOrder({ ...input, provider: input.provider.name });
   if (!reserved.ok) return reserved;
@@ -224,7 +231,7 @@ export async function placeOrder(input: Omit<OrderInput, "provider"> & { card: C
     return { ok: true, orderId };
   }
   await markFailed(paymentId, result.message, result.last4);
-  return { ok: false, message: result.message, orderId };
+  return { ok: false, code: "card", message: result.message, orderId };
 }
 
 class OutOfStock extends Error {

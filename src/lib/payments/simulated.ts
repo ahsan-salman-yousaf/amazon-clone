@@ -11,8 +11,9 @@ import type { CardInput, ChargeResult, PaymentProvider } from "./types";
 export const TEST_CARDS: Record<string, { outcome: "succeeded" } | { outcome: "failed"; message: string }> = {
   "4242424242424242": { outcome: "succeeded" },
   "5555555555554444": { outcome: "succeeded" },
-  "4000000000000002": { outcome: "failed", message: "Your card was declined." },
-  "4000000000009995": { outcome: "failed", message: "Your card has insufficient funds." },
+  "4000000000000002": { outcome: "failed", message: "Your card was declined. Try a different card, or contact your bank." },
+  "4000000000009995": { outcome: "failed", message: "Your card was declined for insufficient funds. Try a different card." },
+  "4000000000000069": { outcome: "failed", message: "Your card has expired. Check the expiry date or use a different card." },
 };
 
 export const digits = (s: string) => s.replace(/\D/g, "");
@@ -21,14 +22,14 @@ export function validateCard(card: CardInput): string | null {
   const number = digits(card.number);
   if (!(number in TEST_CARDS)) return "This demo only accepts test cards, such as 4242 4242 4242 4242.";
   const m = card.expiry.match(/^\s*(\d{2})\s*\/\s*(\d{2})\s*$/);
-  if (!m) return "Enter the expiry as MM/YY.";
+  if (!m) return "Enter the expiry date as MM/YY, for example 12/29.";
   const month = Number(m[1]);
   const year = 2000 + Number(m[2]);
   const now = new Date();
   if (month < 1 || month > 12 || year < now.getFullYear() || (year === now.getFullYear() && month < now.getMonth() + 1)) {
-    return "That expiry date has passed.";
+    return "That expiry date is in the past. Check the card or use a different one.";
   }
-  if (!/^\d{3,4}$/.test(card.cvc.trim())) return "Enter the 3-digit security code.";
+  if (!/^\d{3,4}$/.test(card.cvc.trim())) return "The security code must be the 3 digits on the back of your card.";
   if (!card.name.trim()) return "Enter the name on the card.";
   return null;
 }

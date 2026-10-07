@@ -117,7 +117,11 @@
   - **Passwords:** at least 8 characters, with a show/hide toggle.
   - **Demo account:** a one-click "Try the demo account" button, with its credentials shown on the page.
   - **After sign-in:** the guest cart merges into the account and the shopper returns to where they were.
-- **Checkout:** one page with three decisions: address, delivery speed and payment.
+- **Checkout:** three guided steps, one piece of information each: 1. address, 2. delivery speed, 3. payment.
+  - **Progress:** a "Step N of 3" stepper with a progress line that fills in. Completed steps can be revisited.
+  - **Motion:** each step slides in over about 300 ms, in the direction of travel. All motion turns off under prefers-reduced-motion.
+  - **Recap:** the payment step shows the address and delivery choice, each with an Edit link.
+  - **Errors:** messages are specific and appear where they belong. Field errors move focus to the field, card declines name the reason (insufficient funds, expired card, wrong CVC and so on), and sold-out items are named with a link to the cart. Connection and service failures each have their own message.
   - **Payment:** the Stripe Payment Element in **test mode**, live since 2026-10-07. Live keys are refused. If the keys are missing, checkout falls back to the clearly labelled simulated provider, which accepts test cards only.
   - **Webhook:** `/api/stripe/webhook`, receiving payment_intent.succeeded and payment_intent.payment_failed.
   - **Tax:** a flat estimated 8%.

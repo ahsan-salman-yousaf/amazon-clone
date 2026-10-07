@@ -8,11 +8,13 @@ export function SearchForm({
   defaultValue,
   id,
   className,
+  autoFocus,
 }: {
   size?: "sm" | "lg";
   defaultValue?: string;
   id?: string;
   className?: string;
+  autoFocus?: boolean;
 }) {
   const lg = size === "lg";
   return (
@@ -35,6 +37,7 @@ export function SearchForm({
         name="q"
         type="search"
         defaultValue={defaultValue}
+        autoFocus={autoFocus}
         placeholder={lg ? "Search products" : "Search Olympus Cart"}
         autoComplete="off"
         enterKeyHint="search"

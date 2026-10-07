@@ -7,13 +7,14 @@ import { currentUserId } from "@/auth";
 import { db } from "@/db";
 import { orders, payments } from "@/db/schema";
 import { addressSchema, type AddressField } from "@/lib/address";
+import type { CheckoutErrorCode } from "@/lib/checkout-errors";
 import { readCartId } from "@/lib/cart";
 import { findPayment, markFailed, markPaid, reserveOrder, setProviderRef } from "@/lib/orders";
 import { cardDetails, stripe, stripeEnabled } from "@/lib/payments/stripe";
 
 export type StartPaymentResult =
   | { ok: true; clientSecret: string; paymentId: string; orderId: string }
-  | { ok: false; error: string; fieldErrors?: Partial<Record<AddressField, string>> };
+  | { ok: false; code: CheckoutErrorCode; error: string; fieldErrors?: Partial<Record<AddressField, string>> };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "");
@@ -53,7 +54,7 @@ async function releaseAbandoned(userId: string, keep: string) {
 
 /** Step 1: validate, re-price on the server, reserve stock, create the PaymentIntent. */
 export async function startStripePayment(fd: FormData): Promise<StartPaymentResult> {
-  if (!stripeEnabled) return { ok: false, error: "Payments are not configured." };
+  if (!stripeEnabled) return { ok: false, code: "service", error: "Card payments aren't configured on this site right now." };
   const userId = await currentUserId();
   if (!userId) redirect("/signin?next=/checkout");
   const cartId = await readCartId();
@@ -71,7 +72,7 @@ export async function startStripePayment(fd: FormData): Promise<StartPaymentResu
   if (!address.success) {
     const fieldErrors: Partial<Record<AddressField, string>> = {};
     for (const i of address.error.issues) fieldErrors[i.path[0] as AddressField] ??= i.message;
-    return { ok: false, error: "Please fix the highlighted fields.", fieldErrors };
+    return { ok: false, code: "address", error: `Check your shipping address: ${Object.values(fieldErrors)[0]}`, fieldErrors };
   }
 
   const key = UUID.test(str(fd, "idempotencyKey")) ? str(fd, "idempotencyKey") : crypto.randomUUID();
@@ -84,7 +85,7 @@ export async function startStripePayment(fd: FormData): Promise<StartPaymentResu
       const pi = await stripe().paymentIntents.retrieve(prior.providerRef);
       if (pi.client_secret) return { ok: true, clientSecret: pi.client_secret, paymentId: prior.id, orderId: prior.orderId };
     }
-    return { ok: false, error: "That attempt has ended. Please try again." };
+    return { ok: false, code: "card", error: "That payment attempt has ended. Place the order again to start a new one." };
   }
 
   await releaseAbandoned(userId, key);
@@ -97,7 +98,7 @@ export async function startStripePayment(fd: FormData): Promise<StartPaymentResu
     idempotencyKey: key,
     provider: "stripe",
   });
-  if (!reserved.ok) return { ok: false, error: reserved.message };
+  if (!reserved.ok) return { ok: false, code: reserved.code, error: reserved.message };
   const { orderId, paymentId, totalCents } = reserved.reservation;
 
   try {
@@ -115,7 +116,7 @@ export async function startStripePayment(fd: FormData): Promise<StartPaymentResu
     return { ok: true, clientSecret: pi.client_secret!, paymentId, orderId };
   } catch {
     await markFailed(paymentId, "Couldn't start the payment");
-    return { ok: false, error: "We couldn't reach the payment service. Please try again." };
+    return { ok: false, code: "service", error: "We couldn't reach Stripe to start the payment. Nothing was charged; please try again in a moment." };
   }
 }
 

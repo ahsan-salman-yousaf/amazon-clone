@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { UserIcon } from "lucide-react";
-import { auth } from "@/auth";
+import { auth, currentUserId } from "@/auth";
 import { AccountDropdown } from "@/components/auth/account-dropdown";
 
 const linkClass =
@@ -19,7 +19,7 @@ export function SignInLink() {
 /** Streams per request: "Sign in" for guests, "Hi, Name" + menu when signed in. */
 export async function AccountMenu() {
   const session = await auth();
-  if (!session?.user) return <SignInLink />;
+  if (!session?.user || !(await currentUserId())) return <SignInLink />;
   const first = (session.user.name ?? "there").split(" ")[0];
   return <AccountDropdown firstName={first} email={session.user.email ?? ""} />;
 }

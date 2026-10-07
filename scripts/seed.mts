@@ -6,9 +6,9 @@
 
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { isNull, sql } from "drizzle-orm";
+import { eq, isNull, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { categories, products, reviews, users } from "../src/db/schema.ts";
+import { addresses, categories, products, reviews, users } from "../src/db/schema.ts";
 import { DEMO_EMAIL, DEMO_NAME, DEMO_PASSWORD } from "../src/lib/demo.ts";
 
 type DummyProduct = {
@@ -201,6 +201,23 @@ async function main() {
     .insert(users)
     .values({ name: DEMO_NAME, email: DEMO_EMAIL, passwordHash: await bcrypt.hash(DEMO_PASSWORD, 10) })
     .onConflictDoNothing();
+  const [demo] = await db.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${DEMO_EMAIL}`);
+  const hasAddress = (await db.select({ id: addresses.id }).from(addresses).where(eq(addresses.userId, demo.id)).limit(1)).length;
+  if (!hasAddress) {
+    // Fictional sample address so judges can check out without typing one.
+    await db.insert(addresses).values({
+      userId: demo.id,
+      fullName: DEMO_NAME,
+      line1: "350 Olympus Way",
+      line2: "Suite 12",
+      city: "Seattle",
+      state: "WA",
+      postalCode: "98101",
+      country: "US",
+      phone: "206-555-0142",
+      isDefault: true,
+    });
+  }
 
   const [{ count }] = (await db.execute(sql`select count(*)::int as count from products`)).rows as { count: number }[];
   console.log(`Seeded ${Object.keys(CATEGORY_META).length} categories, ${rows.length} products (${count} in table), reviews.`);

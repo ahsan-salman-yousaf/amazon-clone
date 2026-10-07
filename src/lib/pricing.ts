@@ -12,3 +12,13 @@ export function shippingCents(subtotalCents: number, speed: ShippingSpeed = "sta
 
 /** How much more to spend for free standard delivery (0 once qualified). */
 export const amountToFreeShipping = (subtotalCents: number) => Math.max(0, FREE_SHIPPING_THRESHOLD_CENTS - subtotalCents);
+
+/** Flat estimated sales tax on merchandise (owner decision: no tax engine). */
+export const TAX_RATE = 0.08;
+export const taxCents = (subtotalCents: number) => Math.round(subtotalCents * TAX_RATE);
+
+export function orderTotals(subtotalCents: number, speed: ShippingSpeed) {
+  const shipping = shippingCents(subtotalCents, speed);
+  const tax = taxCents(subtotalCents);
+  return { subtotalCents, shippingCents: shipping, taxCents: tax, totalCents: subtotalCents + shipping + tax };
+}

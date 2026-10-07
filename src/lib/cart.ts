@@ -121,6 +121,8 @@ export type CartLine = {
   priceCents: number;
   listPriceCents: number;
   stock: number;
+  dispatchDaysMin: number;
+  dispatchDaysMax: number;
   quantity: number;
   savedForLater: boolean;
 };
@@ -148,6 +150,8 @@ export async function getCartView(cartId: string | null): Promise<CartView> {
       priceCents: products.priceCents,
       listPriceCents: products.listPriceCents,
       stock: products.stock,
+      dispatchDaysMin: products.dispatchDaysMin,
+      dispatchDaysMax: products.dispatchDaysMax,
       quantity: cartItems.quantity,
       savedForLater: cartItems.savedForLater,
     })

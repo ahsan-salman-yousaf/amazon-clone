@@ -16,9 +16,7 @@ import { cn } from "@/lib/utils";
  * search is primary and the header search fades in once it scrolls away;
  * every other page shows the header search all the time.
  */
-function useHeaderSearchVisible() {
-  const pathname = usePathname();
-  const isHome = pathname === "/";
+function useHeaderSearchVisible(isHome: boolean) {
   const [heroHidden, setHeroHidden] = useState(false);
 
   useEffect(() => {
@@ -35,16 +33,31 @@ function useHeaderSearchVisible() {
   return !isHome || heroHidden;
 }
 
-export function SiteHeader({
-  departments,
-  cartBadge,
-  account,
-}: {
+type HeaderProps = {
   departments: DepartmentGroup[];
   cartBadge?: ReactNode;
   account: ReactNode;
-}) {
-  const showSearch = useHeaderSearchVisible();
+};
+
+/**
+ * The pathname is request data on routes whose params aren't known at build
+ * time, so it is read inside Suspense. The fallback is the regular (non-home)
+ * header, which is what those routes show anyway.
+ */
+export function SiteHeader(props: HeaderProps) {
+  return (
+    <Suspense fallback={<HeaderBar {...props} isHome={false} />}>
+      <PathAwareHeader {...props} />
+    </Suspense>
+  );
+}
+
+function PathAwareHeader(props: HeaderProps) {
+  return <HeaderBar {...props} isHome={usePathname() === "/"} />;
+}
+
+function HeaderBar({ departments, cartBadge, account, isHome }: HeaderProps & { isHome: boolean }) {
+  const showSearch = useHeaderSearchVisible(isHome);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {

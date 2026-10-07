@@ -1,9 +1,10 @@
 import "server-only";
 
 import bcrypt from "bcryptjs";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { cache } from "react";
 import { z } from "zod";
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -51,8 +52,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 });
 
-/** The signed-in user's id, or null. */
-export async function currentUserId(): Promise<string | null> {
-  const session = await auth();
-  return session?.user?.id ?? null;
-}
+/**
+ * The signed-in user's id, or null. A session whose user no longer exists is
+ * treated as signed out. Deduplicated per request.
+ */
+export const currentUserId = cache(async (): Promise<string | null> => {
+  const id = (await auth())?.user?.id;
+  if (!id) return null;
+  const [row] = await db.select({ id: users.id }).from(users).where(eq(users.id, id)).limit(1);
+  return row?.id ?? null;
+});

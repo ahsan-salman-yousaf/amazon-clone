@@ -266,6 +266,9 @@ export const payments = pgTable(
     idempotencyKey: text("idempotency_key").notNull().unique(),
     status: paymentStatus("status").notNull().default("requires_payment"),
     amountCents: integer("amount_cents").notNull(),
+    /** Display only ("Visa ending 4242"); full card numbers are never stored. */
+    cardBrand: text("card_brand"),
+    cardLast4: text("card_last4"),
     failureMessage: text("failure_message"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

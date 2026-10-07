@@ -73,7 +73,7 @@ async function Orders() {
               <div className="min-w-0 flex-1 text-sm">
                 <p className="truncate">{o.items.map((i) => i.title).join(", ")}</p>
                 <p className="text-muted-foreground">
-                  {o.status === "delivered" ? "Delivered" : `Arrives ${short(o.estimatedDeliveryFrom)}${o.estimatedDeliveryTo !== o.estimatedDeliveryFrom ? ` – ${short(o.estimatedDeliveryTo)}` : ""}`}
+                  {o.status === "delivered" ? `Delivered ${short(o.estimatedDeliveryFrom)}` : `Arrives ${short(o.estimatedDeliveryFrom)}${o.estimatedDeliveryTo !== o.estimatedDeliveryFrom ? ` – ${short(o.estimatedDeliveryTo)}` : ""}`}
                 </p>
               </div>
               <p className="text-sm font-semibold tabular-nums">{formatMoney(o.totalCents)}</p>

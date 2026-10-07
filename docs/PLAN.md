@@ -97,7 +97,7 @@
 - **Tooling:** pnpm, Next.js 16.4, Vercel CLI (the owner logs in), Neon added through the Vercel Marketplace.
 - **Catalog rules:** no Amazon-branded products, so "Amazon Echo Plus" is excluded. Delivery dates stay honest even when they're far off; long dispatch times are not capped.
 - **Search:** require all words first, then fall back to any word with a "showing results for …" note, plus prefix matching.
-- **Images:** `next/image`, served unoptimized from DummyJSON's CDN, which stays clear of Vercel Hobby's image quota.
+- **Images:** all 605 product images are mirrored into `public/product-images/` (about 28 MB) and served by Vercel's CDN with a one-year cache (changed 2026-10-07). DummyJSON's CDN was slow and uncached, and it dropped connections, so some photos failed. Still `next/image`, served unoptimized.
 - **Home and header:** the refined search-first home (`docs/design/home-c.html`).
   - **Search:** only one search box is ever on screen. On home the hero search comes first, and a compact search fades into the header once the hero scrolls away. Other pages always show the header search.
   - **Header:** "All", logo, Sign in and Cart only. Departments live only in the "All" drawer, grouped into six sections.
@@ -137,7 +137,7 @@
 - **About and Contact pages:**
   - `/about` tells an in-world Olympus Cart story and keeps the demo notice.
   - `/contact` has a form whose messages are saved in Postgres with a reference number. No email is sent.
-  - A site footer on every page links them; the All drawer links them too.
+  - A site footer on the home page only links them; the All drawer links them on every page.
 - **Colour scheme:** *Graphite Coral*, chosen from `docs/design/color-schemes.html`. Every pair passes WCAG AA.
 
   | Token | Value | Use |

@@ -27,10 +27,10 @@ const columns = [
   },
 ] as const;
 
-/** Calm footer on every page (owner decision): About, Contact and account links. */
+/** Calm footer, shown on the home page only (owner decision): About, Contact and account links. */
 export function SiteFooter() {
   return (
-    <footer className="mt-auto px-3 pb-3">
+    <footer className="px-3 pb-3">
       <div className="glass mx-auto max-w-7xl rounded-3xl px-6 py-8 sm:px-8">
         <div className="grid gap-8 sm:grid-cols-[1.4fr_repeat(3,1fr)]">
           <div>

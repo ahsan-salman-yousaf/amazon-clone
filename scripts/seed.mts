@@ -10,6 +10,7 @@ import { eq, inArray, isNull, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { addresses, categories, orderEvents, orderItems, orders, payments, products, reviews, users } from "../src/db/schema.ts";
 import { DEMO_EMAIL, DEMO_NAME, DEMO_PASSWORD } from "../src/lib/demo.ts";
+import { DUMMYJSON_IMAGE_PREFIX, localImagePath } from "../src/lib/images.ts";
 
 type DummyProduct = {
   id: number;
@@ -137,8 +138,9 @@ async function main() {
       rating: Math.round(p.rating * 10) / 10,
       ratingCount: ratingCount(p.id),
       stock: p.stock,
-      thumbnail: p.thumbnail,
-      images: p.images,
+      // Served from public/product-images (run scripts/mirror-images.mts first).
+      thumbnail: localImagePath(p.thumbnail),
+      images: p.images.map(localImagePath),
       dispatchDaysMin,
       dispatchDaysMax,
       warranty: p.warrantyInformation,
@@ -220,6 +222,14 @@ async function main() {
   }
 
   await seedDemoOrders(db, demo.id);
+  // Order snapshots keep their own thumbnail copy; point old ones at the local files too.
+  const stale = await db.select({ orderId: orderItems.orderId, productId: orderItems.productId, thumbnail: orderItems.thumbnail }).from(orderItems);
+  for (const it of stale.filter((i) => i.thumbnail.startsWith(DUMMYJSON_IMAGE_PREFIX))) {
+    await db
+      .update(orderItems)
+      .set({ thumbnail: localImagePath(it.thumbnail) })
+      .where(sql`${orderItems.orderId} = ${it.orderId} and ${orderItems.productId} = ${it.productId}`);
+  }
 
   const [{ count }] = (await db.execute(sql`select count(*)::int as count from products`)).rows as { count: number }[];
   console.log(`Seeded ${Object.keys(CATEGORY_META).length} categories, ${rows.length} products (${count} in table), reviews.`);

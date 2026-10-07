@@ -1,14 +1,17 @@
 import { ProductRail } from "@/components/product-rail";
+import { SiteFooter } from "@/components/site-footer";
 import { SearchForm } from "@/components/search-form";
 import { BrowseDepartmentsButton } from "@/components/browse-departments-button";
 import { getDeals, getTopRated } from "@/lib/catalog";
 import { HERO_SEARCH_ID } from "@/lib/ui-ids";
 
 // Search-first home: one headline, one search, two calm rails (owner decision).
+// The site footer lives on home only (owner decision); other pages link About/Contact from the All drawer.
 export default async function Home() {
   const [deals, topRated] = await Promise.all([getDeals(), getTopRated()]);
 
   return (
+    <>
     <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 lg:px-8">
       <section className="pt-16 pb-4 text-center lg:pt-28 lg:pb-8">
         <h1 className="mx-auto max-w-2xl text-4xl leading-[1.05] font-semibold tracking-tight text-balance lg:text-6xl">
@@ -29,5 +32,7 @@ export default async function Home() {
         <BrowseDepartmentsButton />
       </div>
     </main>
+    <SiteFooter />
+    </>
   );
 }

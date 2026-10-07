@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import { AccountMenu, SignInLink } from "@/components/auth/account-menu";
 import { CartBadge } from "@/components/cart/cart-badge";
-import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { getCategories } from "@/lib/catalog";
 import { groupDepartments } from "@/lib/departments";
@@ -39,10 +38,6 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <head>
-        {/* Product images come from DummyJSON's CDN. */}
-        <link rel="preconnect" href="https://cdn.dummyjson.com" crossOrigin="" />
-      </head>
       <body className="flex min-h-full flex-col">
         <a
           href="#main"
@@ -68,7 +63,6 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           }
         />
         {children}
-        <SiteFooter />
       </body>
     </html>
   );

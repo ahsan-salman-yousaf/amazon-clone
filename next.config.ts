@@ -10,10 +10,14 @@ const nextConfig: NextConfig = {
     staticGenerationMaxConcurrency: 4,
   },
   images: {
-    // DummyJSON already serves small WebP files; serving them as-is keeps us
-    // clear of Vercel Hobby's image-optimization quota (owner decision).
+    // Product images are small WebP files mirrored into public/product-images
+    // (owner decision); served as-is, which also keeps us clear of Vercel
+    // Hobby's image-optimization quota.
     unoptimized: true,
-    remotePatterns: [new URL("https://cdn.dummyjson.com/product-images/**")],
+  },
+  async headers() {
+    // Mirrored product images never change, so let browsers and the CDN keep them.
+    return [{ source: "/product-images/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] }];
   },
 };
 

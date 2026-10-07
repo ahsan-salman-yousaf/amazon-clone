@@ -1,9 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { startTransition, useActionState, useId, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState, useTransition, type ReactNode } from "react";
+import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import { loadStripe, type Appearance } from "@stripe/stripe-js";
 import { CreditCardIcon, LoaderCircleIcon, LockIcon } from "lucide-react";
 import { placeOrderAction, type CheckoutState } from "@/app/checkout/actions";
+import { cancelStripePayment, finalizeStripePayment, startStripePayment } from "@/app/checkout/stripe-actions";
 import { DeliveryDate } from "@/components/delivery-date";
 import { US_STATES } from "@/lib/address";
 import { EXPRESS_TRANSIT_DAYS, STANDARD_TRANSIT_DAYS } from "@/lib/delivery";
@@ -67,22 +70,146 @@ function Section({ step, title, children }: { step: number; title: string; child
   );
 }
 
-export function CheckoutForm({
-  lines,
-  subtotalCents,
-  dispatch,
-  address,
-  idempotencyKey,
-}: {
+type CheckoutProps = {
   lines: CheckoutLine[];
   subtotalCents: number;
   dispatch: { min: number; max: number };
   address: SavedAddress;
   idempotencyKey: string;
-}) {
-  const [state, action, pending] = useActionState<CheckoutState, FormData>(placeOrderAction, null);
+  /** Stripe test-mode publishable key; absent means the simulated provider. */
+  stripePublishableKey?: string;
+};
+
+/** Submits the form and resolves with an error state (success navigates away). */
+type Submit = (fd: FormData) => Promise<CheckoutState>;
+
+const appearance: Appearance = {
+  theme: "stripe",
+  variables: {
+    colorPrimary: "#16181D",
+    colorText: "#16181D",
+    colorDanger: "#B42318",
+    colorBackground: "#FFFFFF",
+    borderRadius: "12px",
+    fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif",
+    spacingUnit: "4px",
+  },
+};
+
+export function CheckoutForm(props: CheckoutProps) {
+  const { stripePublishableKey: key } = props;
+  const stripePromise = useMemo(() => (key ? loadStripe(key) : null), [key]);
+  if (!stripePromise) return <CheckoutInner {...props} submit={(fd) => placeOrderAction(null, fd)} />;
+  const initial = orderTotals(props.subtotalCents, "standard").totalCents;
+  return (
+    <Elements
+      stripe={stripePromise}
+      options={{
+        mode: "payment",
+        amount: initial,
+        currency: "usd",
+        allowedPaymentMethodTypes: ["card"],
+        appearance,
+        fonts: [{ cssSrc: "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" }],
+      }}
+    >
+      <StripeCheckout {...props} />
+    </Elements>
+  );
+}
+
+const field = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
+
+/**
+ * Stripe test mode: validate the card fields, let the server re-price and
+ * reserve the order, confirm with Stripe, then the server verifies with
+ * Stripe before marking it paid (the webhook does the same, idempotently).
+ */
+function StripeCheckout(props: CheckoutProps) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const onTotalChange = useCallback((amount: number) => elements?.update({ amount }), [elements]);
+
+  const submit: Submit = async (fd) => {
+    if (!stripe || !elements) return { error: "The payment form is still loading. Please try again." };
+    const { error: invalid } = await elements.submit();
+    if (invalid) return { error: invalid.message ?? "Check your card details." };
+
+    const started = await startStripePayment(fd);
+    if (!started.ok) return { error: started.error, fieldErrors: started.fieldErrors };
+
+    // Anything unexpected from Stripe.js must not strand reserved stock or crash the page.
+    const fail = async (message: string) => {
+      await cancelStripePayment(started.paymentId, message);
+      return { error: message, idempotencyKey: crypto.randomUUID() };
+    };
+    try {
+      const { error } = await stripe.confirmPayment({
+        elements,
+        clientSecret: started.clientSecret,
+        redirect: "if_required",
+        confirmParams: {
+          return_url: `${window.location.origin}/checkout/complete`,
+          payment_method_data: {
+            billing_details: {
+              name: field(fd, "fullName"),
+              phone: field(fd, "phone") || undefined,
+              address: {
+                line1: field(fd, "line1"),
+                line2: field(fd, "line2") || undefined,
+                city: field(fd, "city"),
+                state: field(fd, "state"),
+                postal_code: field(fd, "postalCode"),
+                country: "US",
+              },
+            },
+          },
+        },
+      });
+      if (error) return fail(error.message ?? "Your payment didn't go through.");
+    } catch {
+      return fail("Something went wrong with the payment form. Please try again.");
+    }
+    await finalizeStripePayment(started.paymentId); // redirects to the order
+    return null;
+  };
+
+  return (
+    <CheckoutInner
+      {...props}
+      submit={submit}
+      onTotalChange={onTotalChange}
+      payment={
+        <>
+          <div className="mb-4 flex items-start gap-2 rounded-2xl border border-dashed border-input bg-white/60 p-3.5 text-sm">
+            <CreditCardIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
+            <p>
+              <b>Stripe test mode: no real money moves.</b> Use test card <span className="font-mono">4242 4242 4242 4242</span>, any future
+              date and any CVC. <span className="font-mono">4000 0000 0000 0002</span> shows a decline.
+            </p>
+          </div>
+          <PaymentElement options={{ layout: "tabs", fields: { billingDetails: { name: "never", phone: "never", address: "never" } } }} />
+        </>
+      }
+    />
+  );
+}
+
+function CheckoutInner({
+  lines,
+  subtotalCents,
+  dispatch,
+  address,
+  idempotencyKey,
+  submit,
+  payment,
+  onTotalChange,
+}: CheckoutProps & { submit: Submit; payment?: ReactNode; onTotalChange?: (totalCents: number) => void }) {
+  const [state, setState] = useState<CheckoutState>(null);
+  const [pending, startTransition] = useTransition();
   const [speed, setSpeed] = useState<ShippingSpeed>("standard");
   const totals = orderTotals(subtotalCents, speed);
+  useEffect(() => onTotalChange?.(totals.totalCents), [totals.totalCents, onTotalChange]);
   const fe = state?.fieldErrors ?? {};
   const standardCost = shippingCents(subtotalCents, "standard");
 
@@ -98,7 +225,10 @@ export function CheckoutForm({
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
-        startTransition(() => action(fd));
+        startTransition(async () => {
+          const next = await submit(fd);
+          setState((prev) => ({ ...next, idempotencyKey: next?.idempotencyKey ?? prev?.idempotencyKey }));
+        });
       }}
       className="mt-6 lg:grid lg:grid-cols-[1fr_360px] lg:items-start lg:gap-10"
       noValidate
@@ -164,6 +294,8 @@ export function CheckoutForm({
         </Section>
 
         <Section step={3} title="Payment">
+          {payment ?? (
+            <>
           <div className="mb-4 flex items-start gap-2 rounded-2xl border border-dashed border-input bg-white/60 p-3.5 text-sm">
             <CreditCardIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
             <p>
@@ -177,6 +309,13 @@ export function CheckoutForm({
             <Field className="sm:col-span-3" label="Security code" name="cardCvc" inputMode="numeric" autoComplete="off" placeholder="123" maxLength={4} />
             <Field className="sm:col-span-6" label="Name on card" name="cardName" autoComplete="off" defaultValue={address?.fullName} />
           </div>
+            </>
+          )}
+          {payment && state?.error && !state.fieldErrors && (
+            <p role="alert" className="mt-3 text-sm font-medium text-sale">
+              {state.error}
+            </p>
+          )}
         </Section>
       </div>
 

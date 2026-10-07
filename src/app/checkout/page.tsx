@@ -5,6 +5,7 @@ import { currentUserId } from "@/auth";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
 import { getCartView, readCartId } from "@/lib/cart";
 import { getDefaultAddress } from "@/lib/orders";
+import { stripeEnabled } from "@/lib/payments/stripe";
 
 export const metadata: Metadata = { title: "Checkout" };
 
@@ -34,6 +35,7 @@ async function Checkout() {
       dispatch={{ min: Math.max(...buyable.map((l) => l.dispatchDaysMin)), max: Math.max(...buyable.map((l) => l.dispatchDaysMax)) }}
       address={address}
       idempotencyKey={crypto.randomUUID()}
+      stripePublishableKey={stripeEnabled ? process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY : undefined}
     />
   );
 }

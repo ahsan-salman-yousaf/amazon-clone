@@ -29,6 +29,13 @@
       "when": 1791400101346,
       "tag": "0003_contact_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791413312897,
+      "tag": "0004_product_sizes",
+      "breakpoints": true
     }
   ]
 }

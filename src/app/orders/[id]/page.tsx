@@ -139,7 +139,7 @@ async function Order({ params, searchParams }: Pick<PageProps<"/orders/[id]">, "
                 {orderReturns.map((r) => (
                   <li key={r.id} className="rounded-2xl bg-white/60 p-4 text-sm">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-medium">{r.items.map((i) => `${i.title}${i.quantity > 1 ? ` ×${i.quantity}` : ""}`).join(", ")}</p>
+                      <p className="font-medium">{r.items.map((i) => `${i.title}${i.variantLabel ? ` (${i.variantLabel})` : ""}${i.quantity > 1 ? ` ×${i.quantity}` : ""}`).join(", ")}</p>
                       <span
                         className={cn(
                           "inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold",
@@ -181,7 +181,7 @@ async function Order({ params, searchParams }: Pick<PageProps<"/orders/[id]">, "
             </div>
             <ul className="mt-3 divide-y divide-border">
               {items.map((it) => (
-                <li key={it.productId} className="flex items-center gap-4 py-3">
+                <li key={`${it.productId}:${it.variantId ?? ""}`} className="flex items-center gap-4 py-3">
                   <span className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-white/80">
                     <Image src={it.thumbnail} alt="" fill sizes="64px" className="object-contain p-1.5" />
                   </span>
@@ -190,7 +190,7 @@ async function Order({ params, searchParams }: Pick<PageProps<"/orders/[id]">, "
                       {it.title}
                     </Link>
                     <p className="text-muted-foreground">
-                      Qty {it.quantity} · {formatMoney(it.unitPriceCents)} each
+                      {it.variantLabel && <>Size {it.variantLabel} · </>}Qty {it.quantity} · {formatMoney(it.unitPriceCents)} each
                     </p>
                     <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs font-medium">
                       {order.status === "delivered" && (
@@ -227,6 +227,8 @@ async function Order({ params, searchParams }: Pick<PageProps<"/orders/[id]">, "
               )}
               <br />
               {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}
+              <br />
+              United States
             </address>
             <p className="mt-3 text-muted-foreground">{order.shippingSpeed === "expedited" ? "Express delivery" : "Standard delivery"}</p>
           </section>

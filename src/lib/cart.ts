@@ -4,7 +4,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { currentUserId } from "@/auth";
 import { db } from "@/db";
-import { cartItems, carts, products } from "@/db/schema";
+import { cartItems, carts, products, productVariants } from "@/db/schema";
 
 // Guest carts: a DB row whose id lives in an httpOnly cookie (owner decision).
 // Signed-in carts hang off users.id; merging happens at sign-in.
@@ -73,35 +73,55 @@ export async function mergeGuestCartInto(userId: string) {
   const lines = await db.select().from(cartItems).where(eq(cartItems.cartId, guest.id));
   for (const l of lines) {
     if (l.savedForLater) {
-      await db.insert(cartItems).values({ ...l, cartId: own.id }).onConflictDoNothing();
+      await db
+        .insert(cartItems)
+        .values({ cartId: own.id, productId: l.productId, variantId: l.variantId, quantity: l.quantity, savedForLater: true })
+        .onConflictDoNothing();
     } else {
-      await addItem(own.id, l.productId, l.quantity);
+      await addItem(own.id, l.productId, l.quantity, l.variantId);
     }
   }
   await db.delete(carts).where(eq(carts.id, guest.id));
 }
 
+export type AddItemResult = { ok: true; quantity: number } | { ok: false; reason: "size_required" | "invalid_size" | "out_of_stock" };
+
 /**
- * Adds quantity to a line, capped at min(stock, MAX_PER_LINE) in one statement.
- * Returns the resulting line quantity, or 0 if the product can't be bought.
+ * Adds quantity to a line (product + size), capped at min(stock, MAX_PER_LINE)
+ * in one statement. Sized products must name a size of that product.
  */
-export async function addItem(cartId: string, productId: number, quantity: number): Promise<number> {
+export async function addItem(cartId: string, productId: number, quantity: number, variantId?: number | null): Promise<number> {
+  const r = await addItemChecked(cartId, productId, quantity, variantId);
+  return r.ok ? r.quantity : 0;
+}
+
+export async function addItemChecked(cartId: string, productId: number, quantity: number, variantId?: number | null): Promise<AddItemResult> {
   const qty = Math.max(1, Math.min(MAX_PER_LINE, Math.floor(quantity)));
-  const cap = sql`(select least(${products.stock}, ${MAX_PER_LINE}) from ${products} where ${products.id} = ${productId})`;
+  const [p] = await db.select({ sizeType: products.sizeType }).from(products).where(eq(products.id, productId)).limit(1);
+  if (!p) return { ok: false, reason: "out_of_stock" };
+  const vId = p.sizeType ? (variantId ?? null) : null;
+  if (p.sizeType && !vId) return { ok: false, reason: "size_required" };
+  if (vId) {
+    const [v] = await db.select({ id: productVariants.id }).from(productVariants).where(and(eq(productVariants.id, vId), eq(productVariants.productId, productId))).limit(1);
+    if (!v) return { ok: false, reason: "invalid_size" };
+  }
+  const cap = vId
+    ? sql`(select least(${productVariants.stock}, ${MAX_PER_LINE}) from ${productVariants} where ${productVariants.id} = ${vId})`
+    : sql`(select least(${products.stock}, ${MAX_PER_LINE}) from ${products} where ${products.id} = ${productId})`;
   const [row] = await db
     .insert(cartItems)
-    .values({ cartId, productId, quantity: sql`least(${qty}, ${cap})`, savedForLater: false })
+    .values({ cartId, productId, variantId: vId, quantity: sql`least(${qty}, ${cap})`, savedForLater: false })
     .onConflictDoUpdate({
-      target: [cartItems.cartId, cartItems.productId],
+      target: [cartItems.cartId, cartItems.productId, cartItems.variantId],
       set: { quantity: sql`least(${cartItems.quantity} + ${qty}, ${cap})`, savedForLater: false },
     })
-    .returning({ quantity: cartItems.quantity });
+    .returning({ id: cartItems.id, quantity: cartItems.quantity });
   await db.update(carts).set({ updatedAt: new Date() }).where(eq(carts.id, cartId));
   if (!row || row.quantity <= 0) {
-    await db.delete(cartItems).where(and(eq(cartItems.cartId, cartId), eq(cartItems.productId, productId)));
-    return 0;
+    if (row) await db.delete(cartItems).where(eq(cartItems.id, row.id));
+    return { ok: false, reason: "out_of_stock" };
   }
-  return row.quantity;
+  return { ok: true, quantity: row.quantity };
 }
 
 /** Number of items (not lines) waiting to be bought; saved-for-later excluded. */
@@ -114,12 +134,18 @@ export async function cartCount(cartId: string): Promise<number> {
 }
 
 export type CartLine = {
+  /** cart_items.id: identifies product + size. */
+  lineId: number;
   productId: number;
+  variantId: number | null;
+  /** e.g. "M" or "US 9.5"; null for unsized products. */
+  sizeLabel: string | null;
   slug: string;
   title: string;
   thumbnail: string;
   priceCents: number;
   listPriceCents: number;
+  /** Stock of the chosen size, or of the product when unsized. */
   stock: number;
   dispatchDaysMin: number;
   dispatchDaysMax: number;
@@ -143,13 +169,16 @@ export async function getCartView(cartId: string | null): Promise<CartView> {
   if (!cartId) return EMPTY;
   const rows = await db
     .select({
+      lineId: cartItems.id,
       productId: products.id,
+      variantId: cartItems.variantId,
+      sizeLabel: productVariants.label,
       slug: products.slug,
       title: products.title,
       thumbnail: products.thumbnail,
       priceCents: products.priceCents,
       listPriceCents: products.listPriceCents,
-      stock: products.stock,
+      stock: sql<number>`coalesce(${productVariants.stock}, ${products.stock})`,
       dispatchDaysMin: products.dispatchDaysMin,
       dispatchDaysMax: products.dispatchDaysMax,
       quantity: cartItems.quantity,
@@ -157,8 +186,9 @@ export async function getCartView(cartId: string | null): Promise<CartView> {
     })
     .from(cartItems)
     .innerJoin(products, eq(products.id, cartItems.productId))
+    .leftJoin(productVariants, eq(productVariants.id, cartItems.variantId))
     .where(eq(cartItems.cartId, cartId))
-    .orderBy(sql`${cartItems.addedAt} desc`);
+    .orderBy(sql`${cartItems.addedAt} desc`, cartItems.id);
 
   const lines = rows.filter((r) => !r.savedForLater);
   const buyable = lines.filter((l) => l.stock > 0);
@@ -171,19 +201,24 @@ export async function getCartView(cartId: string | null): Promise<CartView> {
   };
 }
 
-const line = (cartId: string, productId: number) => and(eq(cartItems.cartId, cartId), eq(cartItems.productId, productId));
+// Line edits are addressed by cart_items.id and always scoped to the caller's cart.
+const line = (cartId: string, lineId: number) => and(eq(cartItems.cartId, cartId), eq(cartItems.id, lineId));
 
-export async function setQuantity(cartId: string, productId: number, quantity: number) {
+export async function setQuantity(cartId: string, lineId: number, quantity: number) {
   const qty = Math.floor(quantity);
-  if (qty <= 0) return removeItem(cartId, productId);
-  const cap = sql`(select least(${products.stock}, ${MAX_PER_LINE}) from ${products} where ${products.id} = ${productId})`;
-  await db.update(cartItems).set({ quantity: sql`greatest(1, least(${qty}, ${cap}))` }).where(line(cartId, productId));
+  if (qty <= 0) return removeItem(cartId, lineId);
+  const cap = sql`(select least(coalesce(${productVariants.stock}, ${products.stock}), ${MAX_PER_LINE})
+                     from ${cartItems} ci join ${products} on ${products.id} = ci.product_id
+                     left join ${productVariants} on ${productVariants.id} = ci.variant_id
+                    where ci.id = ${lineId})`;
+  await db.update(cartItems).set({ quantity: sql`greatest(1, least(${qty}, ${cap}))` }).where(line(cartId, lineId));
 }
 
-export async function removeItem(cartId: string, productId: number) {
-  await db.delete(cartItems).where(line(cartId, productId));
+export async function removeItem(cartId: string, lineId: number) {
+  const [gone] = await db.delete(cartItems).where(line(cartId, lineId)).returning({ productId: cartItems.productId, variantId: cartItems.variantId });
+  return gone ?? null;
 }
 
-export async function setSavedForLater(cartId: string, productId: number, saved: boolean) {
-  await db.update(cartItems).set({ savedForLater: saved }).where(line(cartId, productId));
+export async function setSavedForLater(cartId: string, lineId: number, saved: boolean) {
+  await db.update(cartItems).set({ savedForLater: saved }).where(line(cartId, lineId));
 }

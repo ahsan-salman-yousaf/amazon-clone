@@ -33,6 +33,7 @@ export async function listWishlist(userId: string) {
       stock: products.stock,
       dispatchDaysMin: products.dispatchDaysMin,
       dispatchDaysMax: products.dispatchDaysMax,
+      sizeType: products.sizeType,
       addedAt: wishlistItems.addedAt,
     })
     .from(wishlistItems)

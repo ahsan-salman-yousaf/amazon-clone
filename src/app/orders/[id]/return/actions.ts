@@ -13,8 +13,8 @@ export async function requestReturnAction(_prev: ReturnFormState, fd: FormData):
   const items = fd
     .getAll("item")
     .map(String)
-    .map((productId) => ({ productId: Number(productId), quantity: Number(fd.get(`qty-${productId}`) ?? 1) }))
-    .filter((i) => Number.isInteger(i.productId) && Number.isInteger(i.quantity));
+    .map((itemId) => ({ itemId: Number(itemId), quantity: Number(fd.get(`qty-${itemId}`) ?? 1) }))
+    .filter((i) => Number.isInteger(i.itemId) && Number.isInteger(i.quantity));
   const result = await createReturn({ userId, orderId, items, reason: String(fd.get("reason") ?? ""), note: String(fd.get("note") ?? "") });
   if (!result.ok) return { error: result.error, field: result.field };
   redirect(`/orders/${orderId}?return=requested`);

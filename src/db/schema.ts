@@ -13,6 +13,7 @@ import {
   serial,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -101,6 +102,8 @@ export const products = pgTable(
     warranty: text("warranty"),
     returnPolicy: text("return_policy"),
     weightGrams: integer("weight_grams"),
+    /** Which size chart applies (shoes, clothing, watch bands); null = not sized. */
+    sizeType: text("size_type").$type<"shoe_men" | "shoe_women" | "apparel" | "watch_band">(),
     createdAt: createdAt(),
     search: tsvector("search").generatedAlwaysAs(
       (): SQL =>
@@ -139,6 +142,26 @@ export const reviews = pgTable(
     // One review per account per product (seeded reviews have no user).
     uniqueIndex("reviews_product_user_idx").on(t.productId, t.userId).where(sql`${t.userId} is not null`),
   ],
+);
+
+/* ---------- sizes ---------- */
+
+/**
+ * One row per size of a sized product (owner decision: shoes, clothing,
+ * watches). For sized products, products.stock is kept equal to the sum here.
+ */
+export const productVariants = pgTable(
+  "product_variants",
+  {
+    id: serial("id").primaryKey(),
+    productId: integer("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    sortOrder: integer("sort_order").notNull(),
+    stock: integer("stock").notNull(),
+  },
+  (t) => [uniqueIndex("product_variants_product_label_idx").on(t.productId, t.label), index("product_variants_product_idx").on(t.productId)],
 );
 
 /* ---------- wishlist ---------- */
@@ -188,17 +211,21 @@ export const carts = pgTable("carts", {
 export const cartItems = pgTable(
   "cart_items",
   {
+    id: serial("id").primaryKey(),
     cartId: uuid("cart_id")
       .notNull()
       .references(() => carts.id, { onDelete: "cascade" }),
     productId: integer("product_id")
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
+    /** The chosen size, for sized products. */
+    variantId: integer("variant_id").references(() => productVariants.id, { onDelete: "cascade" }),
     quantity: integer("quantity").notNull().default(1),
     savedForLater: boolean("saved_for_later").notNull().default(false),
     addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.cartId, t.productId] })],
+  // A line is product + size; the same shirt in M and L are two lines.
+  (t) => [unique("cart_items_line_unique").on(t.cartId, t.productId, t.variantId).nullsNotDistinct()],
 );
 
 /* ---------- orders & payments ---------- */
@@ -252,6 +279,7 @@ export const orders = pgTable(
 export const orderItems = pgTable(
   "order_items",
   {
+    id: serial("id").primaryKey(),
     orderId: uuid("order_id")
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
@@ -263,8 +291,11 @@ export const orderItems = pgTable(
     thumbnail: text("thumbnail").notNull(),
     unitPriceCents: integer("unit_price_cents").notNull(),
     quantity: integer("quantity").notNull(),
+    variantId: integer("variant_id").references(() => productVariants.id, { onDelete: "set null" }),
+    /** Size snapshot, e.g. "M" or "US 9.5". */
+    variantLabel: text("variant_label"),
   },
-  (t) => [primaryKey({ columns: [t.orderId, t.productId] })],
+  (t) => [unique("order_items_line_unique").on(t.orderId, t.productId, t.variantId).nullsNotDistinct(), index("order_items_order_idx").on(t.orderId)],
 );
 
 /** Status timeline shown on the order details page. */
@@ -319,15 +350,17 @@ export const returns = pgTable(
 export const returnItems = pgTable(
   "return_items",
   {
+    id: serial("id").primaryKey(),
     returnId: uuid("return_id")
       .notNull()
       .references(() => returns.id, { onDelete: "cascade" }),
     productId: integer("product_id")
       .notNull()
       .references(() => products.id),
+    variantId: integer("variant_id").references(() => productVariants.id, { onDelete: "set null" }),
     quantity: integer("quantity").notNull(),
   },
-  (t) => [primaryKey({ columns: [t.returnId, t.productId] })],
+  (t) => [unique("return_items_line_unique").on(t.returnId, t.productId, t.variantId).nullsNotDistinct()],
 );
 
 /* ---------- contact messages ---------- */

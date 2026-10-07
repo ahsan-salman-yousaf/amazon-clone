@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe, type Appearance } from "@stripe/stripe-js";
-import { AlertCircleIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, CreditCardIcon, LoaderCircleIcon, LockIcon } from "lucide-react";
+import { AlertCircleIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, CreditCardIcon, LoaderCircleIcon, LockIcon, MapPinIcon } from "lucide-react";
 import { placeOrderAction } from "@/app/checkout/actions";
 import { cancelStripePayment, finalizeStripePayment, startStripePayment } from "@/app/checkout/stripe-actions";
 import { DeliveryDate } from "@/components/delivery-date";
@@ -24,7 +24,7 @@ const inputClass = (error?: string) =>
     error ? "border-sale" : "border-input",
   );
 
-export type CheckoutLine = { productId: number; title: string; thumbnail: string; priceCents: number; quantity: number };
+export type CheckoutLine = { lineId: number; title: string; sizeLabel: string | null; thumbnail: string; priceCents: number; quantity: number };
 export type SavedAddress = {
   fullName: string;
   line1: string;
@@ -460,6 +460,10 @@ function CheckoutSteps({
             {/* Every step stays mounted (the card form is ready early and nothing typed is lost); only the active
                 one shows. Un-hiding an element restarts its CSS animation, so each step animates in on arrival. */}
             <div hidden={step !== 1} className={panelClass}>
+              <p className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1 text-xs font-medium">
+                <MapPinIcon aria-hidden className="size-3.5 text-muted-foreground" />
+                Shipping to the United States
+              </p>
               {savedAddresses.length > 0 && (
                 <fieldset className="mb-5">
                   <legend className="mb-2 text-sm font-medium">Ship to a saved address</legend>
@@ -648,14 +652,17 @@ function CheckoutSteps({
           <h2 className="font-semibold tracking-tight">Order summary</h2>
           <ul className="flex flex-col gap-3">
             {lines.map((l) => (
-              <li key={l.productId} className="flex items-center gap-3 text-sm">
+              <li key={l.lineId} className="flex items-center gap-3 text-sm">
                 <span className="relative size-12 shrink-0 rounded-xl bg-white/80">
                   <Image src={l.thumbnail} alt="" fill sizes="48px" className="rounded-xl object-contain p-1" />
                   <span className="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                     {l.quantity}
                   </span>
                 </span>
-                <span className="line-clamp-2 flex-1">{l.title}</span>
+                <span className="flex-1">
+                  <span className="line-clamp-2">{l.title}</span>
+                  {l.sizeLabel && <span className="block text-xs text-muted-foreground">Size: {l.sizeLabel}</span>}
+                </span>
                 <span className="tabular-nums">{formatMoney(l.priceCents * l.quantity)}</span>
               </li>
             ))}

@@ -40,7 +40,7 @@ function Stars({ rating, className }: { rating: number; className?: string }) {
 export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
   const data = await getProduct((await params).slug);
   if (!data) notFound();
-  const { product: p, categoryName, reviews, related } = data;
+  const { product: p, categoryName, reviews, related, variants } = data;
   const group = groupDepartments(await getCategories()).find((g) => g.categories.some((c) => c.slug === p.categorySlug));
 
   const specs: [string, string | null][] = [
@@ -86,7 +86,7 @@ export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
             <p className="mt-5 max-w-prose text-[15px] leading-relaxed text-foreground/85">{p.description}</p>
 
             <div className="mt-6">
-              <BuyBox product={p} />
+              <BuyBox product={p} sizes={variants} />
             </div>
           </div>
         </div>
@@ -120,6 +120,7 @@ export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
       <ViewTracker productId={p.id} />
       <MobileBuyBar
         productId={p.id}
+        needsSize={variants.length > 0}
         price={formatMoney(p.priceCents)}
         disabled={p.stock <= 0}
         delivery={<DeliveryDate dispatchDaysMin={p.dispatchDaysMin} dispatchDaysMax={p.dispatchDaysMax} />}

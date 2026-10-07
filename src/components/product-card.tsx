@@ -52,7 +52,7 @@ export function ProductCard({ product: p, className }: { product: ProductCardDat
         <div className="pointer-events-auto absolute top-2 right-2">
           <WishlistButton productId={p.id} title={p.title} />
         </div>
-        {p.stock > 0 && <QuickAdd productId={p.id} title={p.title} className="pointer-events-auto absolute right-2.5 bottom-2.5" />}
+        {p.stock > 0 && <QuickAdd productId={p.id} title={p.title} sizeType={p.sizeType} className="pointer-events-auto absolute right-2.5 bottom-2.5" />}
       </div>
     </div>
   );

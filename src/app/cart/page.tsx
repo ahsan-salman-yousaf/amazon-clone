@@ -55,7 +55,7 @@ async function Cart() {
         {cart.lines.length > 0 ? (
           <ul aria-label="Items in your cart" className="glass divide-y divide-border rounded-3xl px-4 sm:px-6">
             {cart.lines.map((l) => (
-              <LineItem key={l.productId} line={l} />
+              <LineItem key={l.lineId} line={l} />
             ))}
           </ul>
         ) : (
@@ -69,7 +69,7 @@ async function Cart() {
             </h2>
             <ul className="mt-3 divide-y divide-border rounded-3xl bg-white/50 px-4 sm:px-6">
               {cart.saved.map((l) => (
-                <LineItem key={l.productId} line={l} saved />
+                <LineItem key={l.lineId} line={l} saved />
               ))}
             </ul>
           </section>
@@ -149,13 +149,20 @@ function LineItem({ line: l, saved = false }: { line: CartLine; saved?: boolean 
             )}
           </p>
         </div>
+        {l.sizeLabel && (
+          <p className="text-xs text-muted-foreground">
+            Size: <span className="font-medium text-foreground">{l.sizeLabel}</span>
+          </p>
+        )}
         <StockStatus stock={l.stock} />
         {!saved && l.quantity > l.stock && l.stock > 0 && (
           <p className="text-xs text-sale">Only {l.stock} available; your quantity will be reduced at checkout.</p>
         )}
         <LineControls
+          lineId={l.lineId}
           productId={l.productId}
-          title={l.title}
+          variantId={l.variantId}
+          title={l.sizeLabel ? `${l.title} (${l.sizeLabel})` : l.title}
           quantity={l.quantity}
           max={Math.min(l.stock, MAX_PER_LINE)}
           saved={saved}

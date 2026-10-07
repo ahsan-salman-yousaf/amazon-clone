@@ -3,7 +3,7 @@ import "server-only";
 import { and, asc, desc, eq, gt, ne, sql } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db";
-import { categories, products, reviews } from "@/db/schema";
+import { categories, products, productVariants, reviews } from "@/db/schema";
 
 /** Fields every product card needs. */
 const cardFields = {
@@ -18,6 +18,7 @@ const cardFields = {
   stock: products.stock,
   dispatchDaysMin: products.dispatchDaysMin,
   dispatchDaysMax: products.dispatchDaysMax,
+  sizeType: products.sizeType,
 };
 
 export type ProductCardData = {
@@ -32,6 +33,8 @@ export type ProductCardData = {
   stock: number;
   dispatchDaysMin: number;
   dispatchDaysMax: number;
+  /** Set for sized products (shoes, clothing, watches); quick-add then asks for a size. */
+  sizeType?: "shoe_men" | "shoe_women" | "apparel" | "watch_band" | null;
 };
 
 export async function getDeals(limit = 5): Promise<ProductCardData[]> {
@@ -100,5 +103,17 @@ export async function getProduct(slug: string) {
       .orderBy(desc(products.rating), desc(products.ratingCount))
       .limit(5),
   ]);
-  return { product, categoryName: row.categoryName, reviews: productReviews, related };
+  const variants = product.sizeType ? await listVariants(product.id) : [];
+  return { product, categoryName: row.categoryName, reviews: productReviews, related, variants };
+}
+
+export type SizeOption = { id: number; label: string; stock: number };
+
+/** A product's sizes in display order (empty for unsized products). */
+export async function listVariants(productId: number): Promise<SizeOption[]> {
+  return db
+    .select({ id: productVariants.id, label: productVariants.label, stock: productVariants.stock })
+    .from(productVariants)
+    .where(eq(productVariants.productId, productId))
+    .orderBy(asc(productVariants.sortOrder));
 }

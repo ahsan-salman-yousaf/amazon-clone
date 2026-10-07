@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
-import { MenuIcon, SearchIcon, ShoppingCartIcon } from "lucide-react";
+import { MapPinIcon, MenuIcon, SearchIcon, ShoppingCartIcon } from "lucide-react";
 import { DepartmentDrawer } from "@/components/department-drawer";
 import { HeaderSearch } from "@/components/header-search";
 import { SearchForm } from "@/components/search-form";
@@ -101,6 +101,15 @@ function HeaderBar({ departments, cartBadge, account, isHome }: HeaderProps & { 
         >
           Olympus<span className="text-star">Cart</span>
         </Link>
+
+        {/* We only ship within the US for now (owner decision). */}
+        <p className="hidden shrink-0 items-center gap-1.5 rounded-xl px-2 text-xs leading-tight lg:flex">
+          <MapPinIcon aria-hidden className="size-4 text-muted-foreground" />
+          <span>
+            <span className="block text-muted-foreground">Delivering to</span>
+            <span className="font-semibold">USA</span>
+          </span>
+        </p>
 
         <div className={cn("mx-auto hidden w-full max-w-xl md:block", reveal)} inert={!showSearch}>
           <Suspense fallback={<SearchForm id="header-search" />}>

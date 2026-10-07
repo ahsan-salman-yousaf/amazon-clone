@@ -31,7 +31,7 @@ async function Checkout() {
 
   return (
     <CheckoutForm
-      lines={buyable.map(({ productId, title, thumbnail, priceCents, quantity }) => ({ productId, title, thumbnail, priceCents, quantity }))}
+      lines={buyable.map(({ lineId, title, sizeLabel, thumbnail, priceCents, quantity }) => ({ lineId, title, sizeLabel, thumbnail, priceCents, quantity }))}
       subtotalCents={cart.subtotalCents}
       dispatch={{ min: Math.max(...buyable.map((l) => l.dispatchDaysMin)), max: Math.max(...buyable.map((l) => l.dispatchDaysMax)) }}
       address={address}

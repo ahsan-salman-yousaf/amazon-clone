@@ -22,6 +22,7 @@ const cardFields = {
   stock: products.stock,
   dispatchDaysMin: products.dispatchDaysMin,
   dispatchDaysMax: products.dispatchDaysMax,
+  sizeType: products.sizeType,
 };
 
 /** Products viewed by the same (anonymous) visitors who viewed this one, most shared first. */

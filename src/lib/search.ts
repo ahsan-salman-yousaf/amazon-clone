@@ -115,6 +115,7 @@ const cardFields = {
   stock: products.stock,
   dispatchDaysMin: products.dispatchDaysMin,
   dispatchDaysMax: products.dispatchDaysMax,
+  sizeType: products.sizeType,
 };
 
 export type SearchResult = {

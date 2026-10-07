@@ -45,7 +45,8 @@ async function Return({ params }: Pick<PageProps<"/orders/[id]/return">, "params
         taxRate={TAX_RATE}
         reasons={RETURN_REASONS}
         items={state.items.map((it) => ({
-          productId: it.productId,
+          itemId: it.itemId,
+          variantLabel: it.variantLabel,
           title: it.title,
           thumbnail: it.thumbnail,
           unitPriceCents: it.unitPriceCents,

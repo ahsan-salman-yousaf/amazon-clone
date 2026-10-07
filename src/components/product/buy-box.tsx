@@ -1,11 +1,13 @@
-import { RotateCcwIcon, ShieldCheckIcon, StoreIcon, TruckIcon } from "lucide-react";
+import { MapPinIcon, RotateCcwIcon, ShieldCheckIcon, StoreIcon, TruckIcon } from "lucide-react";
 import { DeliveryDate } from "@/components/delivery-date";
 import { DiscountBadge } from "@/components/discount-badge";
 import { AddToCartForm } from "@/components/product/add-to-cart-form";
 import { WishlistButton } from "@/components/wishlist/wishlist-button";
+import type { SizeOption } from "@/lib/catalog";
 import { EXPRESS_TRANSIT_DAYS } from "@/lib/delivery";
 import { discountPercent, formatMoney } from "@/lib/format";
 import { EXPRESS_SHIPPING_CENTS, FREE_SHIPPING_THRESHOLD_CENTS } from "@/lib/pricing";
+import type { SizeType } from "@/lib/sizes";
 
 export type BuyBoxProduct = {
   id: number;
@@ -17,6 +19,7 @@ export type BuyBoxProduct = {
   dispatchDaysMax: number;
   warranty: string | null;
   returnPolicy: string | null;
+  sizeType: SizeType | null;
 };
 
 export const LOW_STOCK = 10;
@@ -27,8 +30,9 @@ export function StockStatus({ stock }: { stock: number }) {
   return <p className="text-sm font-medium text-stock">In stock</p>;
 }
 
-export function BuyBox({ product: p }: { product: BuyBoxProduct }) {
+export function BuyBox({ product: p, sizes = [] }: { product: BuyBoxProduct; sizes?: SizeOption[] }) {
   const off = discountPercent(p.priceCents, p.listPriceCents);
+  const sized = !!p.sizeType && sizes.length > 0;
   return (
     <section aria-label="Buy" className="glass flex flex-col gap-4 rounded-3xl p-5">
       <div>
@@ -60,8 +64,9 @@ export function BuyBox({ product: p }: { product: BuyBoxProduct }) {
         </div>
       )}
 
-      <StockStatus stock={p.stock} />
-      <AddToCartForm productId={p.id} maxQuantity={Math.min(10, p.stock)} disabled={p.stock <= 0} />
+      {/* Sized products show stock for the chosen size instead. */}
+      {(!sized || p.stock <= 0) && <StockStatus stock={p.stock} />}
+      <AddToCartForm productId={p.id} maxQuantity={Math.min(10, p.stock)} disabled={p.stock <= 0} sizeType={p.sizeType} sizes={sizes} />
       <WishlistButton productId={p.id} title={p.title} variant="page" />
 
       <ul className="flex flex-col gap-1.5 border-t border-border pt-4 text-xs text-muted-foreground">
@@ -77,6 +82,9 @@ export function BuyBox({ product: p }: { product: BuyBoxProduct }) {
         )}
         <li className="flex items-center gap-2">
           <StoreIcon aria-hidden className="size-3.5" /> Sold and shipped by Olympus Cart
+        </li>
+        <li className="flex items-center gap-2">
+          <MapPinIcon aria-hidden className="size-3.5" /> Ships within the USA only
         </li>
       </ul>
     </section>

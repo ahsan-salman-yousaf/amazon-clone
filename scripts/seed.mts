@@ -8,9 +8,10 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { eq, inArray, isNull, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { addresses, categories, orderEvents, orderItems, orders, payments, products, reviews, users } from "../src/db/schema.ts";
+import { addresses, categories, orderEvents, orderItems, orders, payments, products, productVariants, reviews, users } from "../src/db/schema.ts";
 import { DEMO_EMAIL, DEMO_NAME, DEMO_PASSWORD } from "../src/lib/demo.ts";
 import { DUMMYJSON_IMAGE_PREFIX, localImagePath } from "../src/lib/images.ts";
+import { SIZE_TYPE_BY_CATEGORY, SIZES, splitStock } from "../src/lib/sizes.ts";
 
 type DummyProduct = {
   id: number;
@@ -146,6 +147,7 @@ async function main() {
       warranty: p.warrantyInformation,
       returnPolicy: p.returnPolicy,
       weightGrams: Math.round(p.weight * 100),
+      sizeType: SIZE_TYPE_BY_CATEGORY[p.category] ?? null,
     };
   });
 
@@ -175,8 +177,29 @@ async function main() {
         warranty: excluded("warranty"),
         returnPolicy: excluded("return_policy"),
         weightGrams: excluded("weight_grams"),
+        sizeType: excluded("size_type"),
       },
     });
+
+  // Sizes (owner decision): split each sized product's stock across its sizes.
+  let sized = 0;
+  for (const r of rows) {
+    if (!r.sizeType) continue;
+    const labels = SIZES[r.sizeType];
+    const counts = splitStock(r.id, r.stock, labels);
+    await db
+      .insert(productVariants)
+      .values(labels.map((label, i) => ({ productId: r.id, label, sortOrder: i, stock: counts[i] })))
+      .onConflictDoUpdate({
+        target: [productVariants.productId, productVariants.label],
+        set: { stock: sql`excluded.stock`, sortOrder: sql`excluded.sort_order` },
+      });
+    sized++;
+  }
+  await db.execute(sql`delete from product_variants v using products p where p.id = v.product_id and p.size_type is null`);
+  // Keep products.stock equal to the sum of its sizes.
+  await db.execute(sql`update products p set stock = s.total from (select product_id, sum(stock)::int total from product_variants group by product_id) s where s.product_id = p.id`);
+  console.log(`Sized ${sized} products`);
 
   // Remove anything a previous seed loaded that is now excluded.
   await db.execute(sql`delete from products where brand ilike '%amazon%' or title ilike '%amazon%'`);

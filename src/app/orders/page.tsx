@@ -65,13 +65,13 @@ async function Orders() {
             <div className="mt-4 flex items-center gap-3">
               <div className="flex -space-x-3">
                 {o.items.slice(0, 4).map((it) => (
-                  <span key={it.title} className="relative size-14 overflow-hidden rounded-xl border-2 border-white bg-white">
+                  <span key={`${it.title}:${it.variantLabel ?? ""}`} className="relative size-14 overflow-hidden rounded-xl border-2 border-white bg-white">
                     <Image src={it.thumbnail} alt="" fill sizes="56px" className="object-contain p-1" />
                   </span>
                 ))}
               </div>
               <div className="min-w-0 flex-1 text-sm">
-                <p className="truncate">{o.items.map((i) => i.title).join(", ")}</p>
+                <p className="truncate">{o.items.map((i) => (i.variantLabel ? `${i.title} (${i.variantLabel})` : i.title)).join(", ")}</p>
                 <p className="text-muted-foreground">
                   {o.status === "delivered" ? `Delivered ${short(o.estimatedDeliveryFrom)}` : `Arrives ${short(o.estimatedDeliveryFrom)}${o.estimatedDeliveryTo !== o.estimatedDeliveryFrom ? ` – ${short(o.estimatedDeliveryTo)}` : ""}`}
                 </p>

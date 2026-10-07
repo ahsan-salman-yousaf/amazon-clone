@@ -2,7 +2,7 @@ import "server-only";
 
 import { and, asc, eq, inArray, lte, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { orderEvents, orderItems, orders, payments, products, returnItems, returns } from "@/db/schema";
+import { orderEvents, orderItems, orders, payments, products, productVariants, returnItems, returns } from "@/db/schema";
 import { withTransaction } from "@/db/tx";
 import { advanceOrders } from "@/lib/order-timeline";
 import { stripe, stripeEnabled } from "@/lib/payments/stripe";
@@ -44,7 +44,10 @@ export async function returnableItems(userId: string, orderId: string) {
 
   const items = await db
     .select({
+      itemId: orderItems.id,
       productId: orderItems.productId,
+      variantId: orderItems.variantId,
+      variantLabel: orderItems.variantLabel,
       title: orderItems.title,
       thumbnail: orderItems.thumbnail,
       unitPriceCents: orderItems.unitPriceCents,
@@ -56,12 +59,14 @@ export async function returnableItems(userId: string, orderId: string) {
     .where(eq(orderItems.orderId, orderId));
 
   const already = await db
-    .select({ productId: returnItems.productId, qty: sql<number>`sum(${returnItems.quantity})::int` })
+    .select({ productId: returnItems.productId, variantId: returnItems.variantId, qty: sql<number>`sum(${returnItems.quantity})::int` })
     .from(returnItems)
     .innerJoin(returns, eq(returns.id, returnItems.returnId))
     .where(and(eq(returns.orderId, orderId), ne(returns.status, "cancelled")))
-    .groupBy(returnItems.productId);
-  const returned = new Map(already.map((a) => [a.productId, a.qty]));
+    .groupBy(returnItems.productId, returnItems.variantId);
+  // One line per product and size.
+  const key = (productId: number, variantId: number | null) => `${productId}:${variantId ?? ""}`;
+  const returned = new Map(already.map((a) => [key(a.productId, a.variantId), a.qty]));
 
   const now = Date.now();
   return {
@@ -70,7 +75,7 @@ export async function returnableItems(userId: string, orderId: string) {
     items: items.map((it) => {
       const days = returnWindowDays(it.returnPolicy);
       const closesAt = delivered ? new Date(delivered.at.getTime() + days * 86_400_000) : null;
-      const remaining = it.quantity - (returned.get(it.productId) ?? 0);
+      const remaining = it.quantity - (returned.get(key(it.productId, it.variantId)) ?? 0);
       const reason =
         days === 0
           ? "This item can't be returned (no return policy)."
@@ -86,7 +91,8 @@ export async function returnableItems(userId: string, orderId: string) {
   };
 }
 
-export type ReturnRequest = { productId: number; quantity: number }[];
+/** Keyed by order line, so two sizes of one product are returned separately. */
+export type ReturnRequest = { itemId: number; quantity: number }[];
 export type CreateReturnResult = { ok: true; returnId: string } | { ok: false; error: string; field?: "items" | "reason" | "note" };
 
 export async function createReturn(input: {
@@ -104,12 +110,14 @@ export async function createReturn(input: {
   const wanted = input.items.filter((i) => i.quantity > 0);
   if (!wanted.length) return { ok: false, field: "items", error: "Select at least one item to return." };
   let itemsCents = 0;
+  const lines: { productId: number; variantId: number | null; quantity: number }[] = [];
   for (const w of wanted) {
-    const it = state.items.find((i) => i.productId === w.productId);
+    const it = state.items.find((i) => i.itemId === w.itemId);
     if (!it) return { ok: false, field: "items", error: "One of the selected items isn't part of this order." };
     if (it.blockedReason) return { ok: false, field: "items", error: `${it.title}: ${it.blockedReason}` };
     if (w.quantity > it.remaining) return { ok: false, field: "items", error: `You can return at most ${it.remaining} of ${it.title}.` };
     itemsCents += it.unitPriceCents * w.quantity;
+    lines.push({ productId: it.productId, variantId: it.variantId, quantity: w.quantity });
   }
   // Checked in the order the form asks: items, then reason, then note.
   if (!(input.reason in RETURN_REASONS)) return { ok: false, field: "reason", error: "Choose why you're returning these items." };
@@ -124,7 +132,7 @@ export async function createReturn(input: {
       .insert(returns)
       .values({ orderId: input.orderId, userId: input.userId, reason: input.reason as ReturnReason, note, refundCents })
       .returning({ id: returns.id });
-    await tx.insert(returnItems).values(wanted.map((w) => ({ returnId: r.id, productId: w.productId, quantity: w.quantity })));
+    await tx.insert(returnItems).values(lines.map((l) => ({ returnId: r.id, ...l })));
     return r.id;
   });
   return { ok: true, returnId };
@@ -168,6 +176,9 @@ export async function processDueRefunds(orderId: string) {
       const items = await tx.select().from(returnItems).where(eq(returnItems.returnId, r.id));
       for (const it of items) {
         await tx.update(products).set({ stock: sql`${products.stock} + ${it.quantity}` }).where(eq(products.id, it.productId));
+        if (it.variantId) {
+          await tx.update(productVariants).set({ stock: sql`${productVariants.stock} + ${it.quantity}` }).where(eq(productVariants.id, it.variantId));
+        }
       }
     });
   }
@@ -178,9 +189,22 @@ export async function listReturns(orderId: string) {
   const rows = await db.select().from(returns).where(eq(returns.orderId, orderId)).orderBy(asc(returns.createdAt));
   if (!rows.length) return [];
   const items = await db
-    .select({ returnId: returnItems.returnId, productId: returnItems.productId, quantity: returnItems.quantity, title: orderItems.title })
+    .select({
+      returnId: returnItems.returnId,
+      productId: returnItems.productId,
+      quantity: returnItems.quantity,
+      title: orderItems.title,
+      variantLabel: orderItems.variantLabel,
+    })
     .from(returnItems)
-    .innerJoin(orderItems, and(eq(orderItems.productId, returnItems.productId), eq(orderItems.orderId, orderId)))
+    .innerJoin(
+      orderItems,
+      and(
+        eq(orderItems.productId, returnItems.productId),
+        sql`${orderItems.variantId} is not distinct from ${returnItems.variantId}`,
+        eq(orderItems.orderId, orderId),
+      ),
+    )
     .where(inArray(returnItems.returnId, rows.map((r) => r.id)));
   return rows.map((r) => ({ ...r, items: items.filter((i) => i.returnId === r.id) }));
 }

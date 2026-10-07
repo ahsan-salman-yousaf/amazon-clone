@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useState, type FormEvent } from "react";
 import { CheckIcon, MinusIcon, PlusIcon, ShoppingCartIcon } from "lucide-react";
 import { addToCart, buyNow, type AddToCartState } from "@/app/cart/actions";
+import { SizePicker } from "@/components/product/size-picker";
+import type { SizeOption } from "@/lib/catalog";
+import type { SizeType } from "@/lib/sizes";
 import { cn } from "@/lib/utils";
 
 const ring = "focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none";
@@ -24,21 +27,67 @@ export function QuantityStepper({ value, max, onChange }: { value: number; max: 
   );
 }
 
-export function AddToCartForm({ productId, maxQuantity, disabled }: { productId: number; maxQuantity: number; disabled?: boolean }) {
+const LOW_STOCK = 10;
+
+export function AddToCartForm({
+  productId,
+  maxQuantity,
+  disabled,
+  sizeType,
+  sizes = [],
+}: {
+  productId: number;
+  maxQuantity: number;
+  disabled?: boolean;
+  sizeType?: SizeType | null;
+  sizes?: SizeOption[];
+}) {
   const [qty, setQty] = useState(1);
   const [state, action, pending] = useActionState<AddToCartState, FormData>(addToCart, null);
-  const max = Math.max(1, maxQuantity);
+  const sized = !!sizeType && sizes.length > 0;
+  const [sizeId, setSizeId] = useState<number | null>(null);
+  const [sizeError, setSizeError] = useState<string | null>(null);
+  const size = sizes.find((s) => s.id === sizeId);
+  // With sizes, stock and the quantity cap follow the chosen size.
+  const max = Math.max(1, size ? Math.min(10, size.stock) : maxQuantity);
+
+  // A missing size is caught here, before any request, for both Add to cart and Buy now.
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
+    if (sized && !size) {
+      e.preventDefault();
+      setSizeError(`Choose a ${sizeType === "watch_band" ? "band size" : "size"} first.`);
+      document.querySelector<HTMLButtonElement>("#size-picker [data-size]:not(:disabled)")?.focus();
+    }
+  }
 
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form action={action} onSubmit={onSubmit} className="flex flex-col gap-4">
       <input type="hidden" name="productId" value={productId} />
-      <input type="hidden" name="quantity" value={qty} />
+      <input type="hidden" name="quantity" value={Math.min(qty, max)} />
+      {size && <input type="hidden" name="variantId" value={size.id} />}
+      {sized && !disabled && (
+        <SizePicker
+          sizeType={sizeType!}
+          sizes={sizes}
+          value={sizeId}
+          error={sizeError ?? (state?.needsSize ? state.message : null)}
+          onChange={(id) => {
+            setSizeId(id);
+            setSizeError(null);
+          }}
+        />
+      )}
+      {sized && size && (
+        <p className={cn("text-sm font-medium", size.stock <= LOW_STOCK ? "text-sale" : "text-stock")} aria-live="polite">
+          {size.stock <= LOW_STOCK ? `Only ${size.stock} left in size ${size.label}` : `In stock in size ${size.label}`}
+        </p>
+      )}
       {!disabled && (
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground" id="qty-label">
             Quantity
           </span>
-          <QuantityStepper value={qty} max={max} onChange={(n) => setQty(Math.max(1, Math.min(max, n)))} />
+          <QuantityStepper value={Math.min(qty, max)} max={max} onChange={(n) => setQty(Math.max(1, Math.min(max, n)))} />
         </div>
       )}
       <div className="flex flex-col gap-2">
@@ -72,7 +121,7 @@ export function AddToCartForm({ productId, maxQuantity, disabled }: { productId:
             </Link>
           </>
         )}
-        {state && !state.ok && state.message}
+        {state && !state.ok && !state.needsSize && state.message}
       </p>
     </form>
   );

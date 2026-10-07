@@ -101,22 +101,26 @@ export function CartLineShell({ children }: { children: ReactNode }) {
   );
 }
 
-const form = (productId: number, extra: Record<string, string> = {}) => {
+const form = (lineId: number, extra: Record<string, string> = {}) => {
   const fd = new FormData();
-  fd.set("productId", String(productId));
+  fd.set("lineId", String(lineId));
   for (const [k, v] of Object.entries(extra)) fd.set(k, v);
   return fd;
 };
 
 export function LineControls({
+  lineId,
   productId,
+  variantId,
   title,
   quantity,
   max,
   saved,
   canBuy,
 }: {
+  lineId: number;
   productId: number;
+  variantId: number | null;
   title: string;
   quantity: number;
   max: number;
@@ -131,16 +135,16 @@ export function LineControls({
     <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-2">
       {!saved && canBuy && (
         <>
-          <label className="sr-only" htmlFor={`qty-${productId}`}>
+          <label className="sr-only" htmlFor={`qty-${lineId}`}>
             Quantity for {title}
           </label>
           <select
-            id={`qty-${productId}`}
+            id={`qty-${lineId}`}
             defaultValue={quantity}
             key={quantity}
             onChange={(e) => {
               const q = e.target.value;
-              run(() => updateQuantity(form(productId, { quantity: q })));
+              run(() => updateQuantity(form(lineId, { quantity: q })));
             }}
             // Own chevron + sized to the chosen value: the native arrow sits after the widest option ("Qty 10").
             className={`h-9 appearance-none rounded-full border border-input bg-white pr-8 pl-3.5 text-sm text-foreground transition-colors [field-sizing:content] hover:border-foreground/30 ${ring}`}
@@ -159,15 +163,14 @@ export function LineControls({
         className={linkButton}
         onClick={() => {
           setHidden(true);
-          const removing = removeFromCart(form(productId));
+          const removing = removeFromCart(form(lineId));
           // Undo waits for the removal to land, so a quick Undo can't double or lose the line.
           notify({
             message: `Removed ${title}`,
             undo: async () => {
               await removing;
-              await restoreLine(productId, quantity, saved);
+              await restoreLine(productId, variantId, quantity, saved);
               setHidden(false); // still mounted if Undo beat the refresh
-
             },
           });
           run(() => removing);
@@ -180,7 +183,7 @@ export function LineControls({
         className={linkButton}
         onClick={() =>
           run(async () => {
-            await (saved ? moveToCart : saveForLater)(form(productId));
+            await (saved ? moveToCart : saveForLater)(form(lineId));
             notify({ message: saved ? `Moved ${title} to your cart` : `Saved ${title} for later` });
           })
         }

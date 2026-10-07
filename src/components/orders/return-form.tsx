@@ -11,7 +11,8 @@ import { cn } from "@/lib/utils";
 const ring = "focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none";
 
 export type ReturnableItem = {
-  productId: number;
+  itemId: number;
+  variantLabel: string | null;
   title: string;
   thumbnail: string;
   unitPriceCents: number;
@@ -36,7 +37,7 @@ export function ReturnForm({
   const [picked, setPicked] = useState<Record<number, number>>({});
   const [reason, setReason] = useState("");
 
-  const itemsCents = items.reduce((s, it) => s + (picked[it.productId] ? it.unitPriceCents * picked[it.productId] : 0), 0);
+  const itemsCents = items.reduce((s, it) => s + (picked[it.itemId] ? it.unitPriceCents * picked[it.itemId] : 0), 0);
   const refund = itemsCents + Math.round(itemsCents * taxRate);
   const err = (f: NonNullable<ReturnFormState>["field"]) => (state && state.field === f ? state.error : undefined);
 
@@ -57,26 +58,27 @@ export function ReturnForm({
         <h2 className="font-semibold tracking-tight">1. Which items?</h2>
         <ul className="mt-3 divide-y divide-border">
           {items.map((it) => {
-            const on = !!picked[it.productId];
+            const on = !!picked[it.itemId];
             const disabled = !!it.blockedReason;
             return (
-              <li key={it.productId} className={cn("flex items-center gap-4 py-3", disabled && "opacity-60")}>
+              <li key={it.itemId} className={cn("flex items-center gap-4 py-3", disabled && "opacity-60")}>
                 <input
                   type="checkbox"
-                  id={`item-${it.productId}`}
+                  id={`item-${it.itemId}`}
                   name="item"
-                  value={it.productId}
+                  value={it.itemId}
                   disabled={disabled}
                   checked={on}
-                  onChange={(e) => setPicked((p) => ({ ...p, [it.productId]: e.target.checked ? 1 : 0 }))}
+                  onChange={(e) => setPicked((p) => ({ ...p, [it.itemId]: e.target.checked ? 1 : 0 }))}
                   className="size-5 shrink-0 cursor-pointer accent-primary disabled:cursor-not-allowed"
                 />
-                <label htmlFor={`item-${it.productId}`} className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+                <label htmlFor={`item-${it.itemId}`} className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
                   <span className="relative size-14 shrink-0 overflow-hidden rounded-xl bg-white/80">
                     <Image src={it.thumbnail} alt="" fill sizes="56px" className="object-contain p-1.5" />
                   </span>
                   <span className="min-w-0 text-sm">
                     <span className="line-clamp-2 font-medium">{it.title}</span>
+                    {it.variantLabel && <span className="block text-xs text-muted-foreground">Size: {it.variantLabel}</span>}
                     <span className="block text-xs text-muted-foreground">
                       {it.blockedReason ??
                         `${formatMoney(it.unitPriceCents)} each · return by ${new Date(it.closesAt!).toLocaleDateString("en-US", { month: "long", day: "numeric" })}`}
@@ -85,14 +87,14 @@ export function ReturnForm({
                 </label>
                 {on && it.remaining > 1 && (
                   <>
-                    <label htmlFor={`qty-${it.productId}`} className="sr-only">
+                    <label htmlFor={`qty-${it.itemId}`} className="sr-only">
                       Quantity of {it.title} to return
                     </label>
                     <select
-                      id={`qty-${it.productId}`}
-                      name={`qty-${it.productId}`}
-                      value={picked[it.productId]}
-                      onChange={(e) => setPicked((p) => ({ ...p, [it.productId]: Number(e.target.value) }))}
+                      id={`qty-${it.itemId}`}
+                      name={`qty-${it.itemId}`}
+                      value={picked[it.itemId]}
+                      onChange={(e) => setPicked((p) => ({ ...p, [it.itemId]: Number(e.target.value) }))}
                       className={`h-9 rounded-full border border-input bg-white pr-8 pl-3 text-sm text-foreground ${ring}`}
                     >
                       {Array.from({ length: it.remaining }, (_, i) => i + 1).map((n) => (
@@ -103,7 +105,7 @@ export function ReturnForm({
                     </select>
                   </>
                 )}
-                {on && it.remaining === 1 && <input type="hidden" name={`qty-${it.productId}`} value={1} />}
+                {on && it.remaining === 1 && <input type="hidden" name={`qty-${it.itemId}`} value={1} />}
               </li>
             );
           })}

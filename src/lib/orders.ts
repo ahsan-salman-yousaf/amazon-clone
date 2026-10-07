@@ -2,7 +2,7 @@ import "server-only";
 
 import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { addresses, cartItems, carts, orderEvents, orderItems, orders, payments, products, returns, type ShippingAddress } from "@/db/schema";
+import { addresses, cartItems, carts, orderEvents, orderItems, orders, payments, products, productVariants, returns, type ShippingAddress } from "@/db/schema";
 import { withTransaction } from "@/db/tx";
 import type { AddressInput } from "@/lib/address";
 import { EXPRESS_TRANSIT_DAYS, STANDARD_TRANSIT_DAYS, addBusinessDays } from "@/lib/delivery";
@@ -77,13 +77,16 @@ export async function reserveOrder(input: OrderInput): Promise<{ ok: true; reser
       title: products.title,
       thumbnail: products.thumbnail,
       priceCents: products.priceCents,
-      stock: products.stock,
+      stock: sql<number>`coalesce(${productVariants.stock}, ${products.stock})`.mapWith(Number),
       dispatchDaysMin: products.dispatchDaysMin,
       dispatchDaysMax: products.dispatchDaysMax,
       quantity: cartItems.quantity,
+      variantId: cartItems.variantId,
+      variantLabel: productVariants.label,
     })
     .from(cartItems)
     .innerJoin(products, eq(products.id, cartItems.productId))
+    .leftJoin(productVariants, eq(productVariants.id, cartItems.variantId))
     .where(and(eq(cartItems.cartId, input.cartId), eq(cartItems.savedForLater, false)));
 
   const buyable = lines.filter((l) => l.stock > 0).map((l) => ({ ...l, quantity: Math.min(l.quantity, l.stock) }));
@@ -110,6 +113,14 @@ export async function reserveOrder(input: OrderInput): Promise<{ ok: true; reser
           .where(and(eq(products.id, l.productId), gte(products.stock, l.quantity)))
           .returning({ id: products.id });
         if (!taken.length) throw new OutOfStock(l.title);
+        if (l.variantId) {
+          const size = await tx
+            .update(productVariants)
+            .set({ stock: sql`${productVariants.stock} - ${l.quantity}` })
+            .where(and(eq(productVariants.id, l.variantId), gte(productVariants.stock, l.quantity)))
+            .returning({ id: productVariants.id });
+          if (!size.length) throw new OutOfStock(`${l.title} (${l.variantLabel})`);
+        }
       }
       const [order] = await tx
         .insert(orders)
@@ -128,6 +139,8 @@ export async function reserveOrder(input: OrderInput): Promise<{ ok: true; reser
         buyable.map((l) => ({
           orderId: order.id,
           productId: l.productId,
+          variantId: l.variantId,
+          variantLabel: l.variantLabel,
           title: l.title,
           thumbnail: l.thumbnail,
           unitPriceCents: l.priceCents,
@@ -166,12 +179,24 @@ export async function markPaid(paymentId: string, details: { providerRef: string
     const card = details.last4 ? `Paid with ${details.brand ?? "card"} ending ${details.last4}` : "Payment confirmed";
     await tx.insert(orderEvents).values({ orderId: order.id, status: "paid", note: card });
     // Bought items leave the cart; saved-for-later stays.
-    const bought = await tx.select({ productId: orderItems.productId }).from(orderItems).where(eq(orderItems.orderId, order.id));
+    const bought = await tx
+      .select({ productId: orderItems.productId, variantId: orderItems.variantId })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, order.id));
     const [cart] = await tx.select({ id: carts.id }).from(carts).where(eq(carts.userId, order.userId)).limit(1);
-    if (cart && bought.length) {
-      await tx
-        .delete(cartItems)
-        .where(and(eq(cartItems.cartId, cart.id), eq(cartItems.savedForLater, false), inArray(cartItems.productId, bought.map((b) => b.productId))));
+    if (cart) {
+      for (const b of bought) {
+        await tx
+          .delete(cartItems)
+          .where(
+            and(
+              eq(cartItems.cartId, cart.id),
+              eq(cartItems.savedForLater, false),
+              eq(cartItems.productId, b.productId),
+              sql`${cartItems.variantId} is not distinct from ${b.variantId}`,
+            ),
+          );
+      }
     }
     return order;
   });
@@ -195,6 +220,9 @@ export async function markFailed(paymentId: string, message: string, last4?: str
     const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, payment.orderId));
     for (const it of items) {
       await tx.update(products).set({ stock: sql`${products.stock} + ${it.quantity}` }).where(eq(products.id, it.productId));
+      if (it.variantId) {
+        await tx.update(productVariants).set({ stock: sql`${productVariants.stock} + ${it.quantity}` }).where(eq(productVariants.id, it.variantId));
+      }
     }
   });
 }
@@ -255,6 +283,8 @@ export async function getOrder(userId: string, orderId: string) {
     db
       .select({
         productId: orderItems.productId,
+        variantId: orderItems.variantId,
+        variantLabel: orderItems.variantLabel,
         title: orderItems.title,
         thumbnail: orderItems.thumbnail,
         unitPriceCents: orderItems.unitPriceCents,
@@ -293,7 +323,7 @@ export async function listOrders(userId: string) {
     .orderBy(desc(orders.createdAt));
   if (!rows.length) return [];
   const items = await db
-    .select({ orderId: orderItems.orderId, title: orderItems.title, thumbnail: orderItems.thumbnail, quantity: orderItems.quantity })
+    .select({ orderId: orderItems.orderId, title: orderItems.title, variantLabel: orderItems.variantLabel, thumbnail: orderItems.thumbnail, quantity: orderItems.quantity })
     .from(orderItems)
     .where(inArray(orderItems.orderId, rows.map((r) => r.id)));
   const rets = await db

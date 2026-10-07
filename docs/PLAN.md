@@ -93,6 +93,8 @@
 - **Recon:** the agent captured the logged-out flows (`recon/`). The owner adds the signed-in flows in parallel.
 - **Visual direction:** clean modern retail with glass surfaces (translucent panels and backdrop blur over soft colour fields).
   - Motion is smooth and fast: transitions of 150–450ms, no animations that delay loading, and everything off under `prefers-reduced-motion`.
+- **UI kit:** shadcn/ui on **Radix** primitives, **Nova** preset (Lucide icons, Geist font). Compared in `docs/design/presets.html`.
+- **Tooling:** pnpm, Next.js 16.4, Vercel CLI (the owner logs in), Neon added through the Vercel Marketplace.
 - **Colour scheme:** *Graphite Coral*, chosen from `docs/design/color-schemes.html`. Every pair passes WCAG AA.
 
   | Token | Value | Use |

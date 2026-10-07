@@ -127,6 +127,13 @@
   - **Tax:** a flat estimated 8%.
   - **Address:** US only, saved to the account and prefilled next time. The demo account gets a sample address.
 - **Deploy:** the next production deploy happens once checkout works end to end.
+- **P1 scope:** build all of it.
+  - **Written reviews with star filters:** one review per account per product, with a "Verified purchase" badge for buyers.
+  - **Wishlist:** a heart on cards and product pages, plus a `/wishlist` page.
+  - **Account and address book:** `/account`, and checkout can pick a saved address.
+  - **Returns:** requested from the order details, within each product's return window. The refund is issued in Stripe test mode.
+  - **"Customers also viewed":** built from real, anonymous per-browser view sessions. Until there is enough data, the section is honestly labelled "More from {category}".
+- **Simulated order timeline:** Paid → Shipped a few minutes after payment → Delivered on the estimated date, worked out when the order is viewed. The demo account gets backdated, already-delivered sample orders so returns can be tried.
 - **Colour scheme:** *Graphite Coral*, chosen from `docs/design/color-schemes.html`. Every pair passes WCAG AA.
 
   | Token | Value | Use |

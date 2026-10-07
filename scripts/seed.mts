@@ -6,9 +6,9 @@
 
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { eq, isNull, sql } from "drizzle-orm";
+import { eq, inArray, isNull, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { addresses, categories, products, reviews, users } from "../src/db/schema.ts";
+import { addresses, categories, orderEvents, orderItems, orders, payments, products, reviews, users } from "../src/db/schema.ts";
 import { DEMO_EMAIL, DEMO_NAME, DEMO_PASSWORD } from "../src/lib/demo.ts";
 
 type DummyProduct = {
@@ -219,8 +219,75 @@ async function main() {
     });
   }
 
+  await seedDemoOrders(db, demo.id);
+
   const [{ count }] = (await db.execute(sql`select count(*)::int as count from products`)).rows as { count: number }[];
   console.log(`Seeded ${Object.keys(CATEGORY_META).length} categories, ${rows.length} products (${count} in table), reviews.`);
+}
+
+/**
+ * Backdated, already-delivered sample orders on the demo account, clearly
+ * numbered OC-DEMO-*, so judges can try order history and returns at once.
+ * Paid with the simulated provider (no Stripe charge exists for them).
+ */
+async function seedDemoOrders(db: ReturnType<typeof drizzle>, userId: string) {
+  const day = 86_400_000;
+  const now = Date.now();
+  const samples = [
+    { number: "OC-DEMO-0001", placedDaysAgo: 9, deliveredDaysAgo: 4, slugs: [["white-faux-leather-backpack", 1], ["iphone-12-silicone-case-with-magsafe-plum", 2]] },
+    { number: "OC-DEMO-0002", placedDaysAgo: 48, deliveredDaysAgo: 43, slugs: [["baseball-ball", 3]] },
+  ] as const;
+  const existing = await db.select({ number: orders.number }).from(orders).where(inArray(orders.number, samples.map((s) => s.number)));
+  const have = new Set(existing.map((e) => e.number));
+  const address = { fullName: DEMO_NAME, line1: "350 Olympus Way", line2: "Suite 12", city: "Seattle", state: "WA", postalCode: "98101", country: "US", phone: "206-555-0142" };
+
+  for (const s of samples) {
+    if (have.has(s.number)) continue;
+    const rows = await db.select().from(products).where(inArray(products.slug, s.slugs.map(([slug]) => slug)));
+    const lines = s.slugs.map(([slug, qty]) => ({ p: rows.find((r) => r.slug === slug)!, qty }));
+    const subtotal = lines.reduce((t, l) => t + l.p.priceCents * l.qty, 0);
+    const shipping = subtotal >= 3500 ? 0 : 599;
+    const tax = Math.round(subtotal * 0.08);
+    const placed = new Date(now - s.placedDaysAgo * day);
+    const delivered = new Date(now - s.deliveredDaysAgo * day);
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const [o] = await db
+      .insert(orders)
+      .values({
+        number: s.number,
+        userId,
+        status: "delivered",
+        shippingSpeed: "standard",
+        shippingAddress: address,
+        subtotalCents: subtotal,
+        shippingCents: shipping,
+        taxCents: tax,
+        totalCents: subtotal + shipping + tax,
+        estimatedDeliveryFrom: iso(delivered),
+        estimatedDeliveryTo: iso(delivered),
+        createdAt: placed,
+        updatedAt: delivered,
+      })
+      .returning({ id: orders.id });
+    await db.insert(orderItems).values(lines.map((l) => ({ orderId: o.id, productId: l.p.id, title: l.p.title, thumbnail: l.p.thumbnail, unitPriceCents: l.p.priceCents, quantity: l.qty })));
+    await db.insert(payments).values({
+      orderId: o.id,
+      provider: "simulated",
+      providerRef: `sim_${s.number}`,
+      idempotencyKey: `seed-${s.number}`,
+      status: "succeeded",
+      amountCents: subtotal + shipping + tax,
+      cardBrand: "Visa",
+      cardLast4: "4242",
+      createdAt: placed,
+    });
+    await db.insert(orderEvents).values([
+      { orderId: o.id, status: "pending_payment", note: "Order placed", at: placed },
+      { orderId: o.id, status: "paid", note: "Paid with Visa ending 4242", at: new Date(placed.getTime() + 5_000) },
+      { orderId: o.id, status: "shipped", note: "Shipped from the Olympus Cart warehouse", at: new Date(placed.getTime() + day) },
+      { orderId: o.id, status: "delivered", note: "Delivered", at: delivered },
+    ]);
+  }
 }
 
 main().catch((err) => {

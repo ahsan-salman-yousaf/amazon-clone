@@ -8,6 +8,7 @@ import type { AddressInput } from "@/lib/address";
 import { EXPRESS_TRANSIT_DAYS, STANDARD_TRANSIT_DAYS, addBusinessDays } from "@/lib/delivery";
 import { orderTotals, type ShippingSpeed } from "@/lib/pricing";
 import type { CardInput, PaymentProvider } from "@/lib/payments/types";
+import { advanceOrders } from "@/lib/order-timeline";
 
 const ORDER_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
 function orderNumber() {
@@ -243,6 +244,7 @@ class OutOfStock extends Error {
 /** An order, only if it belongs to the user. */
 export async function getOrder(userId: string, orderId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(orderId)) return null;
+  await advanceOrders(userId, [orderId]);
   const [order] = await db
     .select()
     .from(orders)
@@ -263,6 +265,7 @@ export async function getOrder(userId: string, orderId: string) {
 }
 
 export async function listOrders(userId: string) {
+  await advanceOrders(userId);
   const rows = await db
     .select({
       id: orders.id,

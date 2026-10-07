@@ -128,10 +128,48 @@ export const reviews = pgTable(
     userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
     authorName: text("author_name").notNull(),
     rating: integer("rating").notNull(),
+    title: text("title"),
     comment: text("comment").notNull(),
+    /** The author has a paid order containing this product. */
+    verified: boolean("verified").notNull().default(false),
     createdAt: createdAt(),
   },
-  (t) => [index("reviews_product_idx").on(t.productId)],
+  (t) => [
+    index("reviews_product_idx").on(t.productId),
+    // One review per account per product (seeded reviews have no user).
+    uniqueIndex("reviews_product_user_idx").on(t.productId, t.userId).where(sql`${t.userId} is not null`),
+  ],
+);
+
+/* ---------- wishlist ---------- */
+
+export const wishlistItems = pgTable(
+  "wishlist_items",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    productId: integer("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.productId] })],
+);
+
+/* ---------- product views ("customers also viewed") ---------- */
+
+// Anonymous: a random per-browser id, never linked to an account.
+export const productViews = pgTable(
+  "product_views",
+  {
+    visitorId: uuid("visitor_id").notNull(),
+    productId: integer("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    viewedAt: timestamp("viewed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.visitorId, t.productId] }), index("product_views_product_idx").on(t.productId)],
 );
 
 /* ---------- carts ---------- */
@@ -242,6 +280,54 @@ export const orderEvents = pgTable(
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("order_events_order_idx").on(t.orderId, t.at)],
+);
+
+/* ---------- returns ---------- */
+
+export const returnStatus = pgEnum("return_status", ["requested", "refunded", "cancelled"]);
+export const returnReason = pgEnum("return_reason", [
+  "no_longer_needed",
+  "damaged",
+  "wrong_item",
+  "not_as_described",
+  "better_price",
+  "other",
+]);
+
+export const returns = pgTable(
+  "returns",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    status: returnStatus("status").notNull().default("requested"),
+    reason: returnReason("reason").notNull(),
+    note: text("note"),
+    refundCents: integer("refund_cents").notNull(),
+    /** Stripe refund id, or the simulated provider's reference. */
+    refundRef: text("refund_ref"),
+    createdAt: createdAt(),
+    refundedAt: timestamp("refunded_at", { withTimezone: true }),
+  },
+  (t) => [index("returns_order_idx").on(t.orderId)],
+);
+
+export const returnItems = pgTable(
+  "return_items",
+  {
+    returnId: uuid("return_id")
+      .notNull()
+      .references(() => returns.id, { onDelete: "cascade" }),
+    productId: integer("product_id")
+      .notNull()
+      .references(() => products.id),
+    quantity: integer("quantity").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.returnId, t.productId] })],
 );
 
 export const paymentProvider = pgEnum("payment_provider", ["stripe", "simulated"]);

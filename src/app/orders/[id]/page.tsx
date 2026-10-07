@@ -3,11 +3,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
-import { CheckCircle2Icon, CircleIcon, XCircleIcon } from "lucide-react";
+import { CheckCircle2Icon, CircleIcon, PackageOpenIcon, RotateCcwIcon, XCircleIcon } from "lucide-react";
 import { currentUserId } from "@/auth";
 import { StatusPill } from "@/components/orders/status";
 import { formatMoney } from "@/lib/format";
 import { getOrder } from "@/lib/orders";
+import { RETURN_REASONS, listReturns, returnableItems } from "@/lib/returns";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Order details" };
@@ -32,7 +33,10 @@ async function Order({ params, searchParams }: Pick<PageProps<"/orders/[id]">, "
   const data = await getOrder(userId, id);
   if (!data) notFound();
   const { order, items, events, payment } = data;
-  const justPlaced = (await searchParams).placed === "1" && order.status === "paid";
+  const sp = await searchParams;
+  const justPlaced = sp.placed === "1" && order.status === "paid";
+  const [orderReturns, returnable] = await Promise.all([listReturns(order.id), returnableItems(userId, order.id)]);
+  const canReturn = !!returnable?.delivered && returnable.items.some((i) => !i.blockedReason);
   const failed = order.status === "payment_failed";
   const range =
     order.estimatedDeliveryFrom === order.estimatedDeliveryTo
@@ -112,10 +116,60 @@ async function Order({ params, searchParams }: Pick<PageProps<"/orders/[id]">, "
             )}
           </section>
 
+          {sp.return === "requested" && (
+            <div role="status" className="glass flex items-start gap-3 rounded-3xl p-5">
+              <RotateCcwIcon aria-hidden className="mt-0.5 size-5 shrink-0 text-stock" />
+              <p className="text-sm">
+                <b>Return requested.</b> Your refund is issued automatically once the parcel reaches our warehouse (about 2 minutes in this demo).
+                Reload this page to see it.
+              </p>
+            </div>
+          )}
+
+          {orderReturns.length > 0 && (
+            <section aria-labelledby="returns" className="glass rounded-3xl p-5">
+              <h2 id="returns" className="font-semibold tracking-tight">
+                Returns
+              </h2>
+              <ul className="mt-3 flex flex-col gap-3">
+                {orderReturns.map((r) => (
+                  <li key={r.id} className="rounded-2xl bg-white/60 p-4 text-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-medium">{r.items.map((i) => `${i.title}${i.quantity > 1 ? ` ×${i.quantity}` : ""}`).join(", ")}</p>
+                      <span
+                        className={cn(
+                          "inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold",
+                          r.status === "refunded" ? "bg-stock/10 text-stock" : "bg-black/5",
+                        )}
+                      >
+                        {r.status === "refunded" ? `Refunded ${formatMoney(r.refundCents)}` : "Return requested"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {RETURN_REASONS[r.reason]} · requested {stamp(r.createdAt)}
+                      {r.refundedAt &&
+                        ` · refunded ${stamp(r.refundedAt)}${payment?.cardLast4 ? ` to ${payment.cardBrand ?? "card"} ending ${payment.cardLast4}` : ""}`}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <section aria-labelledby="items" className="glass rounded-3xl p-5">
-            <h2 id="items" className="font-semibold tracking-tight">
-              Items
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 id="items" className="font-semibold tracking-tight">
+                Items
+              </h2>
+              {canReturn && (
+                <Link
+                  href={`/orders/${order.id}/return`}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-input bg-white/70 px-4 text-sm font-medium transition-colors hover:bg-white focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"
+                >
+                  <PackageOpenIcon aria-hidden className="size-4" /> Return items
+                </Link>
+              )}
+            </div>
             <ul className="mt-3 divide-y divide-border">
               {items.map((it) => (
                 <li key={it.productId} className="flex items-center gap-4 py-3">

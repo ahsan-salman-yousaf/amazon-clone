@@ -15,6 +15,13 @@
       "when": 1791389350896,
       "tag": "0001_payment_card_display",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791393925182,
+      "tag": "0002_p1_reviews_wishlist_views_returns",
+      "breakpoints": true
     }
   ]
 }

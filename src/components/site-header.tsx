@@ -89,10 +89,10 @@ function HeaderBar({ departments, cartBadge, account, isHome }: HeaderProps & { 
           onClick={() => setDrawerOpen(true)}
           aria-haspopup="dialog"
           aria-expanded={drawerOpen}
-          className="flex h-10 items-center gap-2 rounded-xl px-2.5 text-sm font-medium transition-colors hover:bg-black/5 focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"
+          aria-label="All departments"
+          className="grid size-10 place-items-center rounded-xl transition-colors hover:bg-black/5 focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"
         >
-          <MenuIcon aria-hidden className="size-4" />
-          <span>All</span>
+          <MenuIcon aria-hidden className="size-5" />
         </button>
 
         <Link

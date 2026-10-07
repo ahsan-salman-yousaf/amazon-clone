@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { UserIcon } from "lucide-react";
 import { eq } from "drizzle-orm";
-import { auth, currentUserId } from "@/auth";
+import { currentUserId, getSession } from "@/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { AccountDropdown } from "@/components/auth/account-dropdown";
@@ -22,7 +22,7 @@ export function SignInLink() {
 
 /** Streams per request: "Sign in" for guests, "Hi, Name" + menu when signed in. */
 export async function AccountMenu() {
-  const session = await auth();
+  const session = await getSession();
   const userId = session?.user ? await currentUserId() : null;
   if (!session?.user || !userId) {
     return (

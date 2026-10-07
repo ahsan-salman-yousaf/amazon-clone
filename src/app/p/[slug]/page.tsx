@@ -6,8 +6,11 @@ import { DeliveryDate } from "@/components/delivery-date";
 import { ProductCard } from "@/components/product-card";
 import { BuyBox } from "@/components/product/buy-box";
 import { ProductGallery } from "@/components/product/gallery";
+import { ViewTracker } from "@/components/product/view-tracker";
+import { getAlsoViewed } from "@/lib/also-viewed";
+import { ReviewsSection } from "@/components/reviews/reviews-section";
 import { MobileBuyBar } from "@/components/product/mobile-buy-bar";
-import { getAllProductSlugs, getCategories, getProduct } from "@/lib/catalog";
+import { getAllProductSlugs, getCategories, getProduct, type ProductCardData } from "@/lib/catalog";
 import { groupDepartments } from "@/lib/departments";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -32,7 +35,6 @@ function Stars({ rating, className }: { rating: number; className?: string }) {
   );
 }
 
-const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
 
 // Owner decision: option B, two columns, sticky gallery left, details + buy box right.
 export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
@@ -48,7 +50,6 @@ export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
     ["Warranty", p.warranty],
     ["Returns", p.returnPolicy],
   ];
-  const dist = [5, 4, 3, 2, 1].map((s) => [s, reviews.filter((r) => r.rating === s).length] as const);
 
   return (
     <>
@@ -106,80 +107,17 @@ export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
           </dl>
         </section>
 
-        <section id="reviews" aria-labelledby="reviews-heading" className="mt-16 scroll-mt-24 lg:grid lg:grid-cols-[260px_1fr] lg:gap-12">
-          <div>
-            <h2 id="reviews-heading" className="text-lg font-semibold tracking-tight">
-              Customer reviews
-            </h2>
-            <div className="mt-3 flex items-center gap-3">
-              <span className="text-4xl font-semibold">{p.rating.toFixed(1)}</span>
-              <div>
-                <Stars rating={p.rating} className="text-base" />
-                <p className="text-xs text-muted-foreground">{p.ratingCount.toLocaleString("en-US")} ratings</p>
-              </div>
-            </div>
-            {reviews.length > 0 && (
-              <>
-                <ul className="mt-4 flex flex-col gap-1.5" aria-label="Written reviews by star rating">
-                  {dist.map(([s, n]) => {
-                    const pct = Math.round((n / reviews.length) * 100);
-                    return (
-                      <li key={s} className="flex items-center gap-2 text-xs">
-                        <span className="w-10">{s} star</span>
-                        <span className="h-2 flex-1 overflow-hidden rounded-full bg-black/10">
-                          <span className="block h-full rounded-full bg-star" style={{ width: `${pct}%` }} />
-                        </span>
-                        <span className="w-8 text-right text-muted-foreground tabular-nums">{pct}%</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Breakdown of {reviews.length} written review{reviews.length === 1 ? "" : "s"}
-                </p>
-              </>
-            )}
-          </div>
-          <ul className="mt-8 flex flex-col divide-y divide-border lg:mt-0">
-            {reviews.map((r) => (
-              <li key={r.id} className="py-5 first:pt-0">
-                <div className="flex items-center gap-2 text-sm">
-                  <span aria-hidden className="grid size-8 place-items-center rounded-full bg-secondary text-xs font-semibold">
-                    {r.authorName
-                      .split(" ")
-                      .map((w) => w[0])
-                      .join("")}
-                  </span>
-                  <span className="font-medium">{r.authorName}</span>
-                  <span className="text-muted-foreground">· {dateFmt.format(r.createdAt)}</span>
-                </div>
-                <p className="mt-2 flex items-center gap-1.5 text-xs">
-                  <Stars rating={r.rating} />
-                  <span className="sr-only">{r.rating} out of 5 stars</span>
-                </p>
-                <p className="mt-1 text-sm">{r.comment}</p>
-              </li>
-            ))}
-            {reviews.length === 0 && <li className="text-sm text-muted-foreground">No written reviews yet.</li>}
-          </ul>
-        </section>
+        <ReviewsSection
+          productId={p.id}
+          rating={p.rating}
+          ratingCount={p.ratingCount}
+          reviews={reviews.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }))}
+        />
 
-        {related.length > 0 && (
-          <section aria-labelledby="related" className="mt-16">
-            <h2 id="related" className="text-lg font-semibold tracking-tight">
-              You might also like
-            </h2>
-            <ul className="-mx-4 mt-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] lg:mx-0 lg:grid lg:grid-cols-5 lg:gap-6 lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden">
-              {related.map((r) => (
-                <li key={r.id} className="w-[44vw] max-w-[220px] shrink-0 snap-start sm:w-[30vw] lg:w-auto lg:max-w-none">
-                  <ProductCard product={r} />
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        <AlsoViewed productId={p.id} categoryName={categoryName} fallback={related} />
       </main>
 
+      <ViewTracker productId={p.id} />
       <MobileBuyBar
         productId={p.id}
         price={formatMoney(p.priceCents)}
@@ -187,5 +125,28 @@ export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
         delivery={<DeliveryDate dispatchDaysMin={p.dispatchDaysMin} dispatchDaysMax={p.dispatchDaysMax} />}
       />
     </>
+  );
+}
+
+/** Real co-views when there are enough; otherwise an honestly labelled same-category rail. */
+async function AlsoViewed({ productId, categoryName, fallback }: { productId: number; categoryName: string; fallback: ProductCardData[] }) {
+  const viewed = await getAlsoViewed(productId);
+  const items = viewed.fromViews ? viewed.items : fallback;
+  if (!items.length) return null;
+  const title = viewed.fromViews ? "Customers also viewed" : `More from ${categoryName}`;
+  return (
+    <section aria-labelledby="related" className="mt-16">
+      <h2 id="related" className="text-lg font-semibold tracking-tight">
+        {title}
+      </h2>
+      {viewed.fromViews && <p className="mt-1 text-sm text-muted-foreground">Based on what other shoppers looked at alongside this item</p>}
+      <ul className="-mx-4 mt-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] lg:mx-0 lg:grid lg:grid-cols-5 lg:gap-6 lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden">
+        {items.map((r) => (
+          <li key={r.id} className="w-[44vw] max-w-[220px] shrink-0 snap-start sm:w-[30vw] lg:w-auto lg:max-w-none">
+            <ProductCard product={r} />
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

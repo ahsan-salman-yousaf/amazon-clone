@@ -3,6 +3,7 @@ import "server-only";
 import bcrypt from "bcryptjs";
 import { eq, sql } from "drizzle-orm";
 import NextAuth from "next-auth";
+import { connection } from "next/server";
 import Credentials from "next-auth/providers/credentials";
 import { cache } from "react";
 import { z } from "zod";
@@ -53,11 +54,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 });
 
 /**
+ * The session for this request. Auth.js creates a random CSRF token while
+ * reading it, which Cache Components forbids during prerendering, so mark
+ * the call as request-time first.
+ */
+export async function getSession() {
+  await connection();
+  return auth();
+}
+
+/**
  * The signed-in user's id, or null. A session whose user no longer exists is
  * treated as signed out. Deduplicated per request.
  */
 export const currentUserId = cache(async (): Promise<string | null> => {
-  const id = (await auth())?.user?.id;
+  const id = (await getSession())?.user?.id;
   if (!id) return null;
   const [row] = await db.select({ id: users.id }).from(users).where(eq(users.id, id)).limit(1);
   return row?.id ?? null;

@@ -61,7 +61,8 @@ export async function getTopRated(limit = 5): Promise<ProductCardData[]> {
 export async function getCategories() {
   "use cache";
   cacheLife("days");
-  cacheTag("catalog");
+  // Own tag: product edits (reviews, ratings) must never invalidate the header or category pages.
+  cacheTag("categories");
   return db.select().from(categories).orderBy(asc(categories.sortOrder));
 }
 
@@ -88,7 +89,7 @@ export async function getProduct(slug: string) {
   const { search: _search, ...product } = row.product;
   const [productReviews, related] = await Promise.all([
     db
-      .select({ id: reviews.id, authorName: reviews.authorName, rating: reviews.rating, comment: reviews.comment, createdAt: reviews.createdAt })
+      .select({ id: reviews.id, authorName: reviews.authorName, rating: reviews.rating, title: reviews.title, comment: reviews.comment, verified: reviews.verified, createdAt: reviews.createdAt })
       .from(reviews)
       .where(eq(reviews.productId, product.id))
       .orderBy(desc(reviews.createdAt)),

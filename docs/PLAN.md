@@ -118,7 +118,8 @@
   - **Demo account:** a one-click "Try the demo account" button, with its credentials shown on the page.
   - **After sign-in:** the guest cart merges into the account and the shopper returns to where they were.
 - **Checkout:** one page with three decisions: address, delivery speed and payment.
-  - **Payment:** for now the clearly labelled simulated provider, which accepts test cards only. Stripe test mode replaces it once the owner adds the keys.
+  - **Payment:** the Stripe Payment Element in **test mode**, live since 2026-10-07. Live keys are refused. If the keys are missing, checkout falls back to the clearly labelled simulated provider, which accepts test cards only.
+  - **Webhook:** `/api/stripe/webhook`, receiving payment_intent.succeeded and payment_intent.payment_failed.
   - **Tax:** a flat estimated 8%.
   - **Address:** US only, saved to the account and prefilled next time. The demo account gets a sample address.
 - **Deploy:** the next production deploy happens once checkout works end to end.

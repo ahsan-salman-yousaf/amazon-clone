@@ -1,27 +1,33 @@
-import { Button } from "@/components/ui/button";
+import { ProductRail } from "@/components/product-rail";
+import { SearchForm } from "@/components/search-form";
+import { BrowseDepartmentsButton } from "@/components/browse-departments-button";
+import { getDeals, getTopRated } from "@/lib/catalog";
+import { HERO_SEARCH_ID } from "@/lib/ui-ids";
 
-// Skeleton home page so the live link exists early (PLAN.md Step 4.1).
-// Replaced by the real storefront once the catalog is seeded.
-export default function Home() {
+// Search-first home: one headline, one search, two calm rails (owner decision).
+export default async function Home() {
+  const [deals, topRated] = await Promise.all([getDeals(), getTopRated()]);
+
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-10">
-      <header className="glass flex items-center gap-3 rounded-2xl px-4 py-3">
-        <span className="text-xl font-extrabold tracking-tight">
-          Olympus<span className="text-star">Cart</span>
-        </span>
-      </header>
-      <section className="glass rounded-2xl p-8">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          Everything you need, delivered by Friday.
+    <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 lg:px-8">
+      <section className="pt-16 pb-4 text-center lg:pt-28 lg:pb-8">
+        <h1 className="mx-auto max-w-2xl text-4xl leading-[1.05] font-semibold tracking-tight text-balance lg:text-6xl">
+          What are you shopping for today?
         </h1>
-        <p className="mt-2 max-w-prose text-muted-foreground">
-          The storefront is being built. Search, product pages, cart and checkout are coming next.
+        <p className="mx-auto mt-4 max-w-md text-muted-foreground">
+          Clear prices, and a real delivery date before you check out.
         </p>
-        <div className="mt-6 flex flex-wrap gap-2">
-          <Button variant="brand" size="lg">Shop deals</Button>
-          <Button variant="outline" size="lg">Browse categories</Button>
+        <div className="mx-auto mt-8 max-w-2xl">
+          <SearchForm size="lg" id={HERO_SEARCH_ID} />
         </div>
       </section>
+
+      <ProductRail title="Today's deals" subtitle="Biggest price drops right now" href="/search?sort=discount" products={deals} />
+      <ProductRail title="Top rated" subtitle="Loved by thousands of shoppers" href="/search?sort=rating" products={topRated} />
+
+      <div className="mt-20 text-center">
+        <BrowseDepartmentsButton />
+      </div>
     </main>
   );
 }

@@ -31,6 +31,8 @@ type DummyProduct = {
 };
 
 const EXCLUDED = new Set(["vehicle", "motorcycle"]);
+// We carry a "not affiliated with Amazon" notice, so no Amazon-branded products (owner decision).
+const isExcludedBrand = (p: DummyProduct) => /amazon/i.test(`${p.brand ?? ""} ${p.title}`);
 
 // Display names and shelf order (most-shopped first).
 const CATEGORY_META: Record<string, [name: string, order: number]> = {
@@ -94,7 +96,7 @@ async function main() {
   const res = await fetch("https://dummyjson.com/products?limit=0");
   if (!res.ok) throw new Error(`DummyJSON responded ${res.status}`);
   const all = ((await res.json()) as { products: DummyProduct[] }).products;
-  const items = all.filter((p) => !EXCLUDED.has(p.category));
+  const items = all.filter((p) => !EXCLUDED.has(p.category) && !isExcludedBrand(p));
 
   const unknown = [...new Set(items.map((p) => p.category))].filter((c) => !CATEGORY_META[c]);
   if (unknown.length) throw new Error(`No display name for categories: ${unknown.join(", ")}`);
@@ -171,6 +173,9 @@ async function main() {
         weightGrams: excluded("weight_grams"),
       },
     });
+
+  // Remove anything a previous seed loaded that is now excluded.
+  await db.execute(sql`delete from products where brand ilike '%amazon%' or title ilike '%amazon%'`);
 
   // Keep the serial in step with the explicit DummyJSON ids.
   await db.execute(sql`select setval(pg_get_serial_sequence('products', 'id'), (select max(id) from products))`);

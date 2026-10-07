@@ -95,6 +95,14 @@
   - Motion is smooth and fast: transitions of 150–450ms, no animations that delay loading, and everything off under `prefers-reduced-motion`.
 - **UI kit:** shadcn/ui on **Radix** primitives, **Nova** preset (Lucide icons, Geist font). Compared in `docs/design/presets.html`.
 - **Tooling:** pnpm, Next.js 16.4, Vercel CLI (the owner logs in), Neon added through the Vercel Marketplace.
+- **Catalog rules:** no Amazon-branded products, so "Amazon Echo Plus" is excluded. Delivery dates stay honest even when they're far off; long dispatch times are not capped.
+- **Search:** require all words first, then fall back to any word with a "showing results for …" note, plus prefix matching.
+- **Images:** `next/image`, served unoptimized from DummyJSON's CDN, which stays clear of Vercel Hobby's image quota.
+- **Home and header:** the refined search-first home (`docs/design/home-c.html`).
+  - **Search:** only one search box is ever on screen. On home the hero search comes first, and a compact search fades into the header once the hero scrolls away. Other pages always show the header search.
+  - **Header:** "All", logo, Sign in and Cart only. Departments live only in the "All" drawer, grouped into six sections.
+  - **Rails:** two calm product rails (Today's deals, Top rated) and a "Browse all departments" button.
+  - **Cards:** image, title, price and one line with the rating and delivery date, with a small round "+" to add to cart.
 - **Colour scheme:** *Graphite Coral*, chosen from `docs/design/color-schemes.html`. Every pair passes WCAG AA.
 
   | Token | Value | Use |

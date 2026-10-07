@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SiteHeader } from "@/components/site-header";
+import { getCategories } from "@/lib/catalog";
+import { groupDepartments } from "@/lib/departments";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,17 +23,25 @@ export const metadata: Metadata = {
   description: "Olympus Cart is a demo shopping site. It is not affiliated with Amazon.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const departments = groupDepartments(await getCategories());
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-full flex-col">
+        <a
+          href="#main"
+          className="sr-only z-50 rounded-lg bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+        >
+          Skip to content
+        </a>
         <div aria-hidden className="color-fields" />
         <p className="bg-primary px-4 py-1.5 text-center text-xs text-primary-foreground">
           Demo project, not affiliated with Amazon. No real orders or payments: checkout runs in Stripe test mode.
         </p>
+        <SiteHeader departments={departments} />
         {children}
       </body>
     </html>

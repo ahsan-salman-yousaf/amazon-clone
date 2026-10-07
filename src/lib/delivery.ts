@@ -1,5 +1,7 @@
 /** Business days in transit for standard shipping, on top of dispatch time. */
 export const STANDARD_TRANSIT_DAYS = 2;
+/** Express shipping: one business day in transit. */
+export const EXPRESS_TRANSIT_DAYS = 1;
 
 /** Adds business days (Mon–Fri) to a date. */
 export function addBusinessDays(from: Date, days: number) {

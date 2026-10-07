@@ -1,9 +1,9 @@
 import "server-only";
 
-import { asc, desc, gt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ne, sql } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db";
-import { categories, products } from "@/db/schema";
+import { categories, products, reviews } from "@/db/schema";
 
 /** Fields every product card needs. */
 const cardFields = {
@@ -63,4 +63,41 @@ export async function getCategories() {
   cacheLife("days");
   cacheTag("catalog");
   return db.select().from(categories).orderBy(asc(categories.sortOrder));
+}
+
+export async function getAllProductSlugs() {
+  "use cache";
+  cacheLife("days");
+  cacheTag("catalog");
+  return db.select({ slug: products.slug }).from(products);
+}
+
+export async function getProduct(slug: string) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("catalog", `product:${slug}`);
+  const [row] = await db
+    .select({ product: products, categoryName: categories.name })
+    .from(products)
+    .innerJoin(categories, eq(categories.slug, products.categorySlug))
+    .where(eq(products.slug, slug))
+    .limit(1);
+  if (!row) return null;
+  // The tsvector column is internal to search; keep it out of the page payload.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { search: _search, ...product } = row.product;
+  const [productReviews, related] = await Promise.all([
+    db
+      .select({ id: reviews.id, authorName: reviews.authorName, rating: reviews.rating, comment: reviews.comment, createdAt: reviews.createdAt })
+      .from(reviews)
+      .where(eq(reviews.productId, product.id))
+      .orderBy(desc(reviews.createdAt)),
+    db
+      .select(cardFields)
+      .from(products)
+      .where(and(eq(products.categorySlug, product.categorySlug), ne(products.id, product.id)))
+      .orderBy(desc(products.rating), desc(products.ratingCount))
+      .limit(5),
+  ]);
+  return { product, categoryName: row.categoryName, reviews: productReviews, related };
 }

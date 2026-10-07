@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { MenuIcon, SearchIcon, ShoppingCartIcon, UserIcon } from "lucide-react";
 import { DepartmentDrawer } from "@/components/department-drawer";
+import { HeaderSearch } from "@/components/header-search";
 import { SearchForm } from "@/components/search-form";
 import type { DepartmentGroup } from "@/lib/departments";
 import { HERO_SEARCH_ID, OPEN_DEPARTMENTS_EVENT } from "@/lib/ui-ids";
@@ -77,7 +78,9 @@ export function SiteHeader({ departments }: { departments: DepartmentGroup[] }) 
         </Link>
 
         <div className={cn("mx-auto hidden w-full max-w-xl md:block", reveal)} inert={!showSearch}>
-          <SearchForm id="header-search" />
+          <Suspense fallback={<SearchForm id="header-search" />}>
+            <HeaderSearch />
+          </Suspense>
         </div>
 
         <nav aria-label="Account" className="ml-auto flex items-center gap-1 md:ml-0">

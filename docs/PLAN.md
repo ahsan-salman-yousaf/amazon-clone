@@ -103,6 +103,13 @@
   - **Header:** "All", logo, Sign in and Cart only. Departments live only in the "All" drawer, grouped into six sections.
   - **Rails:** two calm product rails (Today's deals, Top rated) and a "Browse all departments" button.
   - **Cards:** image, title, price and one line with the rating and delivery date, with a small round "+" to add to cart.
+- **Search results:** option A from `docs/design/search-and-product.html`.
+  - **Filters:** a sidebar that is always visible, covering Delivery, Rating, Price, Brand and Department. Changes apply instantly, without reloading the page.
+  - **Results:** active filters show as removable pills, with five sort options.
+  - **Mobile:** a filter bottom sheet with a "Show N results" button.
+- **Product page:** option B.
+  - **Layout:** a large sticky gallery on the left, with details and the buy box on the right. Specs, reviews and related products run full width below.
+  - **Mobile:** a bottom bar fixed to the screen, with price and Add to cart.
 - **Colour scheme:** *Graphite Coral*, chosen from `docs/design/color-schemes.html`. Every pair passes WCAG AA.
 
   | Token | Value | Use |

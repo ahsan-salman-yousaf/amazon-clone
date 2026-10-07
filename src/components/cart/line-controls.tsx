@@ -2,12 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { createContext, use, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
-import { LoaderCircleIcon, Undo2Icon, XIcon } from "lucide-react";
+import { ChevronDownIcon, LoaderCircleIcon, Undo2Icon, XIcon } from "lucide-react";
 import { moveToCart, removeFromCart, restoreLine, saveForLater, updateQuantity } from "@/app/cart/actions";
 import { cn } from "@/lib/utils";
 
 const ring = "focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none";
-const linkButton = `rounded-md text-sm font-medium text-foreground/75 underline-offset-2 transition-colors hover:text-foreground hover:underline disabled:opacity-50 ${ring}`;
+// Small pills that turn coral (with ink text, AA contrast) on hover and keyboard focus.
+const linkButton = `inline-flex h-8 items-center rounded-full px-3 text-sm font-medium text-foreground/75 transition-[background-color,color] duration-150 hover:bg-brand hover:text-brand-foreground focus-visible:bg-brand focus-visible:text-brand-foreground focus-visible:outline-none disabled:opacity-50`;
 
 /* ---------------- undo notice, one per cart page ---------------- */
 
@@ -127,7 +128,7 @@ export function LineControls({
   const options = Array.from({ length: Math.max(max, quantity, 1) }, (_, i) => i + 1);
 
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2">
+    <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-2">
       {!saved && canBuy && (
         <>
           <label className="sr-only" htmlFor={`qty-${productId}`}>
@@ -141,7 +142,8 @@ export function LineControls({
               const q = e.target.value;
               run(() => updateQuantity(form(productId, { quantity: q })));
             }}
-            className={`h-9 rounded-full border border-input bg-white pr-8 pl-3 text-sm text-foreground ${ring}`}
+            // Own chevron + sized to the chosen value: the native arrow sits after the widest option ("Qty 10").
+            className={`h-9 appearance-none rounded-full border border-input bg-white pr-8 pl-3.5 text-sm text-foreground transition-colors [field-sizing:content] hover:border-foreground/30 ${ring}`}
           >
             {options.map((n) => (
               <option key={n} value={n}>
@@ -149,6 +151,7 @@ export function LineControls({
               </option>
             ))}
           </select>
+          <ChevronDownIcon aria-hidden className="pointer-events-none -ml-7 mr-3 size-3.5 text-muted-foreground" />
         </>
       )}
       <button

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import { AccountMenu, SignInLink } from "@/components/auth/account-menu";
 import { CartBadge } from "@/components/cart/cart-badge";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { getCategories } from "@/lib/catalog";
 import { groupDepartments } from "@/lib/departments";
@@ -67,6 +68,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           }
         />
         {children}
+        <SiteFooter />
       </body>
     </html>
   );

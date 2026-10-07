@@ -81,6 +81,21 @@ export function DepartmentDrawer({
           >
             Browse all products <ArrowRightIcon aria-hidden className="size-4" />
           </Link>
+          <p className="mt-2 flex justify-center gap-1 text-xs">
+            {[
+              ["About us", "/about"],
+              ["Contact us", "/contact"],
+            ].map(([label, href]) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => onOpenChange(false)}
+                className="rounded-full px-3 py-1.5 font-medium text-muted-foreground transition-colors hover:bg-brand hover:text-brand-foreground focus-visible:bg-brand focus-visible:text-brand-foreground focus-visible:outline-none"
+              >
+                {label}
+              </Link>
+            ))}
+          </p>
         </div>
       </SheetContent>
     </Sheet>

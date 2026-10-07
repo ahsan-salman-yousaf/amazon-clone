@@ -330,6 +330,27 @@ export const returnItems = pgTable(
   (t) => [primaryKey({ columns: [t.returnId, t.productId] })],
 );
 
+/* ---------- contact messages ---------- */
+
+export const contactTopic = pgEnum("contact_topic", ["order", "return", "account", "product", "feedback", "other"]);
+
+export const contactMessages = pgTable(
+  "contact_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Shown to the sender, e.g. OC-MSG-7K3P92. */
+    reference: text("reference").notNull().unique(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    topic: contactTopic("topic").notNull(),
+    orderNumber: text("order_number"),
+    message: text("message").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("contact_messages_created_idx").on(t.createdAt)],
+);
+
 export const paymentProvider = pgEnum("payment_provider", ["stripe", "simulated"]);
 export const paymentStatus = pgEnum("payment_status", [
   "requires_payment",

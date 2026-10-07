@@ -134,6 +134,10 @@
   - **Returns:** requested from the order details, within each product's return window. The refund is issued in Stripe test mode.
   - **"Customers also viewed":** built from real, anonymous per-browser view sessions. Until there is enough data, the section is honestly labelled "More from {category}".
 - **Simulated order timeline:** Paid → Shipped a few minutes after payment → Delivered on the estimated date, worked out when the order is viewed. The demo account gets backdated, already-delivered sample orders so returns can be tried.
+- **About and Contact pages:**
+  - `/about` tells an in-world Olympus Cart story and keeps the demo notice.
+  - `/contact` has a form whose messages are saved in Postgres with a reference number. No email is sent.
+  - A site footer on every page links them; the All drawer links them too.
 - **Colour scheme:** *Graphite Coral*, chosen from `docs/design/color-schemes.html`. Every pair passes WCAG AA.
 
   | Token | Value | Use |
